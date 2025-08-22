@@ -1,0 +1,41 @@
+{
+	"version": 3,
+	"canvas": { "width": 1920, "height": 1080, "aspect": "16:9" },
+	"generatedFrom": {
+		"colorMap": "UI Mapping/UI_background_coloured_1920x1080.png",
+		"legend": "UI Mapping/farblegende_mapping_UI.txt"
+	},
+	"scaling": { "mode": "fit", "letterbox": true, "safeMargin": 0.02 },
+	"render": { "opponentRotationDeg": 180 },
+	"colors": {
+		"#ff0035": "hand.player",
+		"#ffc500": "row.government.player",
+		"#00ff00": "row.public.player",
+		"#ff00fa": "slot.permanent.government.player",
+		"#08cdf4": "slot.permanent.public.player",
+		"#7b745b": "slot.instant.player",
+		"#aa0700": "row.government.opponent",
+		"#ff6553": "slot.permanent.government.opponent",
+		"#2693a9": "slot.permanent.public.opponent",
+		"#073842": "slot.instant.opponent"
+	},
+	"zones": [
+		{"id":"row.government.player","rectPx":[24,300,1344,256],"rectNorm":[0.0125,0.2777778,0.7,0.237037],"layout":{"type":"fixedSlots","slots":5,"slotSize":[256,256],"gap":16,"alignment":"center"},"z":20},
+		{"id":"row.public.player","rectPx":[24,580,1344,256],"rectNorm":[0.0125,0.537037,0.7,0.237037],"layout":{"type":"fixedSlots","slots":5,"slotSize":[256,256],"gap":16,"alignment":"center"},"z":20},
+		{"id":"interventions.player","rectPx":[24,772,1344,64],"rectNorm":[0.0125,0.7148148,0.7,0.0592593],"layout":{"type":"strip","cardSize":[64,64],"max":6,"gap":8},"z":22},
+
+		{"id":"slot.permanent.government.player","rectPx":[1640,300,256,256],"rectNorm":[0.8541667,0.2777778,0.1333333,0.237037],"layout":{"type":"singleSlot","slotSize":[256,256]},"z":25},
+		{"id":"slot.permanent.public.player","rectPx":[1640,580,256,256],"rectNorm":[0.8541667,0.537037,0.1333333,0.237037],"layout":{"type":"singleSlot","slotSize":[256,256]},"z":25},
+		{"id":"slot.instant.player","rectPx":[1640,312,256,256],"rectNorm":[0.8541667,0.2888889,0.1333333,0.237037],"layout":{"type":"singleSlot","slotSize":[256,256]},"z":25},
+
+		{"id":"row.government.opponent","rectPx":[24,168,688,128],"rectNorm":[0.0125,0.1555556,0.3583333,0.1185185],"layout":{"type":"fixedSlots","slots":5,"slotSize":[128,128],"gap":12,"alignment":"center"},"z":10},
+		{"id":"row.public.opponent","rectPx":[24,24,688,128],"rectNorm":[0.0125,0.0222222,0.3583333,0.1185185],"layout":{"type":"fixedSlots","slots":5,"slotSize":[128,128],"gap":12,"alignment":"center"},"z":10},
+
+		{"id":"slot.permanent.public.opponent","rectPx":[840,24,256,256],"rectNorm":[0.4375,0.0222222,0.1333333,0.237037],"layout":{"type":"singleSlot","slotSize":[256,256]},"z":12},
+		{"id":"slot.permanent.government.opponent","rectPx":[1112,24,256,256],"rectNorm":[0.5791667,0.0222222,0.1333333,0.237037],"layout":{"type":"singleSlot","slotSize":[256,256]},"z":12},
+		{"id":"slot.instant.opponent","rectPx":[1384,24,256,256],"rectNorm":[0.7208333,0.0222222,0.1333333,0.237037],"layout":{"type":"singleSlot","slotSize":[256,256]},"z":12},
+
+		{"id":"hand.player","rectPx":[24,936,1872,180],"rectNorm":[0.0125,0.8666667,0.975,0.1666667],"layout":{"type":"fixedSlots","slots":10,"slotSize":[180,180],"gap":8,"alignment":"center"},"z":30},
+		{"id":"hand.opponent","rectPx":[1200,936,696,144],"rectNorm":[0.625,0.8666667,0.3625,0.1333333],"layout":{"type":"fixedSlots","slots":10,"slotSize":[64,144],"gap":4,"alignment":"center"},"z":30}
+	]
+}
