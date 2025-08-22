@@ -5,7 +5,6 @@ import { buildDeckFromEntries, sumGovernmentInfluenceWithAuras } from '../utils/
 import { PRESET_DECKS } from '../data/gameData';
 import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard } from '../utils/ap';
 import { drawOne } from '../utils/draw';
-import { isGovernmentCard, isInitiativeCard } from '../utils/cardUtils';
 import { triggerCardEffects } from '../effects/cards';
 import { resolveQueue } from '../utils/queue';
 import { applyStartOfTurnHooks } from '../utils/startOfTurnHooks';
@@ -257,12 +256,12 @@ export function useGameActions(
         1: {
           ...createDefaultEffectFlags(),
           freeInitiativeAvailable: true,
-          freeGovernmentAvailable: true,
+          govRefundAvailable: false,      // ✅ Start: kein Refund aktiv
         },
         2: {
           ...createDefaultEffectFlags(),
           freeInitiativeAvailable: true,
-          freeGovernmentAvailable: true,
+          govRefundAvailable: false,      // ✅ Start: kein Refund aktiv
         }
       },
       log: [
@@ -318,32 +317,30 @@ export function useGameActions(
         return prev;
       }
 
-      // 2) Netto-AP-Kosten bestimmen (canonical implementation)
-      const { cost, refund, net, reasons, consumedGovRefund, consumedNextInitRefund, consumedNextInitDiscount } = getNetApCost(prev, player, selectedCard, lane);
+      const kind = (selectedCard as any).kind ?? '';
+      const isInitiative = kind === 'spec' && /initiative/i.test((selectedCard as any).type ?? '');
 
-      // 4) State klonen und AP/Action **sofort** verbuchen (reservieren)
+      // ✅ Netto-AP verwenden
+      const { cost: apCost, refund: apRefund, net: apNet, reasons: apReasons } =
+        getNetApCost(prev, player, selectedCard, lane);
+
+      // Aktionen-Regel: nur wenn net > 0 eine Aktion verbrauchen
       const newState = { ...prev };
-
-      // AP-Netto: Actions only consume when net > 0
-      if (net > 0) {
+      if (apNet > 0) {
         newState.actionsUsed[player] += 1;
-        log(`[AP] Kosten: -${cost} AP +${refund} Refund = Netto ${net} AP [${reasons.join(', ')}]`);
+      }
+
+      // AP abziehen nach Netto
+      newState.actionPoints[player] = Math.max(0, prev.actionPoints[player] - apNet);
+
+      // UI-Log konsistent
+      if (apNet === 0) {
+        log(`🆓 Netto-0-Zug: −${apCost} AP +${apRefund} Refund → 0 AP (keine Aktion verbraucht)`);
       } else {
-        log(`[AP] Netto-0-Zug: -${cost} AP +${refund} Refund = Netto 0 AP [${reasons.join(', ')}]`);
+        log(`💳 Kosten verbucht: −${apCost} AP +${apRefund} Refund = ${apNet} Netto`);
       }
-
-      newState.actionPoints[player] = Math.max(0, newState.actionPoints[player] - net);
-
-      // Flags nach Verbrauch aufräumen
-      if (isGovernmentCard(selectedCard) && consumedGovRefund) {
-        newState.effectFlags[player].govRefundAvailable = false;
-        log('[REFUND] Greta-Refund verbraucht.');
-      }
-      if (isInitiativeCard(selectedCard) && consumedNextInitRefund) {
-        newState.effectFlags[player].nextInitiativeRefund = 0;
-      }
-      if (isInitiativeCard(selectedCard) && consumedNextInitDiscount) {
-        newState.effectFlags[player].nextInitiativeDiscounted = false;
+      if (apReasons?.length) {
+        log(`🔎 Gründe: ${apReasons.join(' · ')}`);
       }
 
       // 🔧 Flags sicher initialisieren
@@ -409,8 +406,36 @@ export function useGameActions(
         triggerCardEffects(newState, player, playedCard, targetLane);
         resolveQueue(newState, log);
 
-        // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-        applyApRefundsAfterPlay(newState, player, selectedCard, log);
+        // 🔄 Refund-Verbrauch NUR beim tatsächlichen Spielen
+
+        // 1) Initiative: Refund-Becken teilweise/ganz abbauen
+        if (isInitiative) {
+          const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
+          if (poolBefore > 0) {
+            const consumed = Math.min(apCost, poolBefore); // verbrauche bis zur Höhe der (rabattierten) Kosten
+            newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
+            if (consumed > 0) {
+              log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
+            }
+          }
+        }
+
+        // 2) Greta-Refund (erste Regierungskarte): Flag danach deaktivieren
+        const isGovernment = kind === 'pol';
+        if (isGovernment && newState.effectFlags[player]?.govRefundAvailable) {
+          newState.effectFlags[player].govRefundAvailable = false;
+          log('🎟️ Greta-Refund verbraucht: nächste Regierungskarte dieser Runde kostet wieder normal (Refund entfernt).');
+        }
+
+        // *** Karten-Soforteffekte (Beispiel Bill Gates -> Plattform-Refund für nächste Initiative) ***
+        try {
+          const name = (playedCard as any).name ?? '';
+          if (name === 'Bill Gates') {
+            const before = newState.effectFlags[player].nextInitiativeRefund ?? 0;
+            newState.effectFlags[player].nextInitiativeRefund = before + 1;
+            log(`🎟️ Bill Gates: nächste Initiative +1 AP Refund (Becken: ${before}→${newState.effectFlags[player].nextInitiativeRefund}).`);
+          }
+        } catch {}
 
         // 🔍 BOARD DEBUG: Zeige aktuelles Board nach dem Spielen
         const currentBoard = newState.board[player];
@@ -453,8 +478,15 @@ export function useGameActions(
           triggerCardEffects(newState, player, playedCard);
           resolveQueue(newState, log);
 
-          // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-          applyApRefundsAfterPlay(newState, player, selectedCard, log);
+          // 🔄 Refund-Verbrauch für Dauerhaft-Initiative
+          const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
+          if (poolBefore > 0) {
+            const consumed = Math.min(apCost, poolBefore);
+            newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
+            if (consumed > 0) {
+              log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
+            }
+          }
           return newState;
         }
 
@@ -474,8 +506,15 @@ export function useGameActions(
           triggerCardEffects(newState, player, playedCard);
           resolveQueue(newState, log);
 
-          // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-          applyApRefundsAfterPlay(newState, player, selectedCard, log);
+          // 🔄 Refund-Verbrauch für Instant-Initiative
+          const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
+          if (poolBefore > 0) {
+            const consumed = Math.min(apCost, poolBefore);
+            newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
+            if (consumed > 0) {
+              log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
+            }
+          }
           return newState;
         }
 
@@ -666,8 +705,12 @@ export function useGameActions(
       const newState = { ...prev };
       const current = prev.current;
 
-      // 🃏 Regel: Am Ende DES EIGENEN ZUGS 1 Karte ziehen (max HAND_LIMIT)
-      drawOne(newState, current, log);
+      // ✅ Karte nachziehen am Ende eines Zugs (nur wenn NICHT "pass")
+      if (!prev.passed[current]) {
+        drawOne(newState, current, log);
+      } else {
+        log(`⏭️ P${current} hat gepasst – kein Nachziehen.`);
+      }
 
       // Check if round should end
       const shouldEndRound = checkRoundEnd(newState);

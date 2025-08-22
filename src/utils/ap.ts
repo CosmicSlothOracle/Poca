@@ -1,7 +1,6 @@
 import type { GameState, Player } from '../types/game';
 import type { Card } from '../types/game';
 import { createDefaultEffectFlags } from '../types/game';
-import { isGovernmentCard, isInitiativeCard } from '../utils/cardUtils';
 
 export const START_AP = 2;
 export const MAX_AP = 4;
@@ -18,7 +17,7 @@ export function getCardActionPointCost(
   player: Player,
   card: Card,
   lane?: 'innen' | 'aussen'
-): APCostInfo {
+): { cost: number; reasons: string[] } {
   let cost = 1;
   const reasons: string[] = [];
 
@@ -26,13 +25,8 @@ export function getCardActionPointCost(
   const typeStr = (card as any).type ?? '';
   const isInitiative = kind === 'spec' && /initiative/i.test(typeStr);
 
-  // 1) Harte Freistellungen
-  if (isInitiative && state.effectFlags?.[player]?.freeInitiativeAvailable) {
-    cost = 0; reasons.push('Freie Initiative: 0 AP');
-  }
-
-  // 2) Rabatte (nur wenn noch Kosten > 0)
-  if (isInitiative && cost > 0) {
+  // ✅ Nur echte Rabatte/Discounts wirken hier auf die Kosten (nicht Refunds!)
+  if (isInitiative) {
     const disc = state.effectFlags?.[player]?.ngoInitiativeDiscount ?? 0;
     if (disc > 0) {
       const before = cost;
@@ -109,37 +103,29 @@ export function getNetApCost(
   p: Player,
   card: Card,
   lane?: 'innen' | 'aussen'
-): {
-  cost: number; refund: number; net: number; reasons: string[];
-  consumedGovRefund: boolean; consumedNextInitRefund: boolean; consumedNextInitDiscount: boolean;
-} {
+): { cost: number; refund: number; net: number; reasons: string[] } {
   const { cost, reasons } = getCardActionPointCost(state, p, card, lane);
+
   let refund = 0;
-  let consumedGovRefund = false;
-  let consumedNextInitRefund = false;
-  let consumedNextInitDiscount = false;
 
-  const isGov = isGovernmentCard(card);
-  const isInit = isInitiativeCard(card);
+  const kind = (card as any).kind ?? '';
+  const typeStr = (card as any).type ?? '';
+  const isInitiative = kind === 'spec' && /initiative/i.test(typeStr);
+  const isGovernment = kind === 'pol';
 
-  // Greta/Bewegung: erste Regierungskarte → +1 AP zurück
-  if (isGov && state.effectFlags?.[p]?.govRefundAvailable) {
+  // ✅ Greta-Refund (nur Regierungskarten, einmal pro Zug)
+  if (isGovernment && state.effectFlags?.[p]?.govRefundAvailable) {
     refund += 1;
-    consumedGovRefund = true;
     reasons.push('Greta: +1 AP bei erster Regierungskarte');
   }
 
-  // NÄCHSTE INITIATIVE: Refund
-  const nextInitRefund = state.effectFlags?.[p]?.nextInitiativeRefund ?? 0;
-  if (isInit && nextInitRefund > 0) {
-    refund += nextInitRefund;
-    consumedNextInitRefund = true;
-    reasons.push(`Nächste Initiative: +${nextInitRefund} AP Refund`);
-  }
-
-  // NÄCHSTE INITIATIVE: Discount (kommt aus getCardActionPointCost, dort wird cost reduziert)
-  if (isInit && state.effectFlags?.[p]?.nextInitiativeDiscounted) {
-    consumedNextInitDiscount = true;
+  // ✅ Zentrales Refund-Becken für Initiativen (stackbar)
+  if (isInitiative) {
+    const pool = state.effectFlags?.[p]?.nextInitiativeRefund ?? 0;
+    if (pool > 0) {
+      refund += pool;
+      reasons.push(`Initiative-Refund: +${pool} AP aus Becken`);
+    }
   }
 
   const net = Math.max(0, cost - refund);
@@ -147,15 +133,16 @@ export function getNetApCost(
   if (process.env.NODE_ENV !== 'production') {
     console.debug('[AP DEBUG]', {
       player: p,
-      card: card?.name,
+      card: (card as any)?.name,
       base: 1,
-      reasons,
+      costAfterDiscounts: cost,
+      refund,
       net,
       flags: state.effectFlags?.[p],
     });
   }
 
-  return { cost, refund, net, reasons, consumedGovRefund, consumedNextInitRefund, consumedNextInitDiscount };
+  return { cost, refund, net, reasons };
 }
 
 export function wouldBeNetZero(
@@ -184,4 +171,9 @@ export function canPlayCard(state: GameState, p: Player, card: Card, lane?: 'inn
     reason: !hasAp ? 'Zu wenig AP' : (!withinActionLimit && !hasZeroAp ? 'Max. Aktionen erreicht' : null),
     net,
   };
+}
+
+// helper
+export function isGovernmentCard(card: Card): boolean {
+  return (card as any).kind === 'pol';
 }

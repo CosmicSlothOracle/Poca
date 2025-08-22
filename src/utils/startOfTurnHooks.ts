@@ -1,4 +1,4 @@
-import { GameState, Player, createDefaultEffectFlags } from '../types/game';
+import { GameState, Player, createDefaultEffectFlags, PoliticianCard } from '../types/game';
 import { isMovementOnBoard } from './movement';
 
 /**
@@ -10,22 +10,34 @@ import { isMovementOnBoard } from './movement';
  * - Set Greta/Movement refund availability based on board state
  */
 export function applyStartOfTurnHooks(state: GameState, player: Player, log: (m: string) => void) {
-  const f = state.effectFlags[player] ?? createDefaultEffectFlags();
+  const f = { ...state.effectFlags[player] };
 
-  // ✅ Clean legacy/old free flags - we work only with refunds now
-  f.freeGovernmentAvailable = false;     // we work only with refunds
-  f.freeInitiativeAvailable = false;     // ditto
+  // Greta (Bewegung): erste Regierungskarte gibt +1 AP zurück
+  const gretaActive = state.board[player].innen.some(
+    c => c.kind === 'pol' && c.name === 'Greta Thunberg' && !(c as PoliticianCard).deactivated
+  );
+  // Nur wenn Greta liegt, aktivieren; sonst aus
+  f.govRefundAvailable = !!gretaActive;
 
-  // ✅ Reset per-turn flags (otherwise they carry over rounds)
+  // Initiative-Refund-Becken bleibt bestehen (z. B. von Bill Gates)
+  // KEIN Reset von f.nextInitiativeRefund hier – es ist stackbar und wird beim Spielen verbraucht.
+
+  // Reset turn-scoped Flags (Initiative-bezogen neu initialisieren)
   f.nextInitiativeDiscounted = false;
-  f.nextInitiativeRefund = 0;
-  f.govRefundAvailable = false;
-
-  // ✅ Greta/Movement = first government card gives +1 AP back (Refund)
-  if (isMovementOnBoard(state, player)) {
-    f.govRefundAvailable = true;
-    log('🎟️ Bewegung aktiv: Erste Regierungskarte gibt +1 AP zurück.');
+  // Plattform-Refund bleibt erhalten, bis er verbraucht wurde, aber "Used" ist turn-lokal -> resetten:
+  if (!f.platformRefundAvailable) {
+    // falls keiner anstand, Sicherheit
+    f.platformRefundUsed = false;
+  } else {
+    f.platformRefundUsed = false;
   }
+  f.diplomatInfluenceTransferUsed = false;
 
-  state.effectFlags[player] = f;
+  state.effectFlags = { ...state.effectFlags, [player]: f };
+}
+
+function hasMovementCard(player: Player, state: GameState): boolean {
+  const pub = state.board[player].innen;
+  const names = ['Greta Thunberg', 'Malala Yousafzai', 'Ai Weiwei', 'Alexei Navalny'];
+  return pub.some(c => c.kind === 'pol' && names.includes(c.name) && !(c as PoliticianCard).deactivated);
 }

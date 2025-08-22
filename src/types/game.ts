@@ -109,28 +109,36 @@ export interface GameState {
 
 
 
-// Einheitliche Default-Werte für Flags
-export const createDefaultEffectFlags = (): EffectFlags => ({
-  freeInitiativeAvailable: false,
-  freeGovernmentAvailable: false,
-  platformRefundAvailable: false,
-  platformRefundUsed: false,
-  ngoInitiativeDiscount: 0,
-  platformInitiativeDiscount: 0,
-  diplomatInfluenceTransferUsed: false,
-  influenceTransferBlocked: false,
-  nextGovPlus2: false,
-  nextGovernmentCardBonus: 0,
-  nextInitiativeDiscounted: false,
-  nextInitiativeMinus1: false,
-  publicEffectDoubled: false,
-  cannotPlayInitiatives: false,
-  nextCardProtected: false,
-  platformAfterInitiativeBonus: false,
-  interventionEffectReduced: false,
-  govRefundAvailable: false,        // Greta & Co. (erste Regierungskarte → +1 AP Refund)
-  nextInitiativeRefund: 0,          // +X AP Refund auf die nächste Initiative
-});
+export function createDefaultEffectFlags(): EffectFlags {
+  return {
+    // bestehende Defaults …
+    freeInitiativeAvailable: false,
+    freeGovernmentAvailable: false,
+    ngoInitiativeDiscount: 0,
+    nextInitiativeDiscounted: false,
+
+    // 🔧 NEU:
+    nextInitiativeRefund: 0,
+    govRefundAvailable: false,
+
+    // Alt (nicht mehr nutzen):
+    platformRefundAvailable: false,
+    platformRefundUsed: false,
+
+    // Weitere bestehende Defaults...
+    platformInitiativeDiscount: 0,
+    diplomatInfluenceTransferUsed: false,
+    influenceTransferBlocked: false,
+    nextGovPlus2: false,
+    nextGovernmentCardBonus: 0,
+    nextInitiativeMinus1: false,
+    publicEffectDoubled: false,
+    cannotPlayInitiatives: false,
+    nextCardProtected: false,
+    platformAfterInitiativeBonus: false,
+    interventionEffectReduced: false,
+  };
+}
 
 export interface BuilderState {
   open: boolean;
@@ -217,24 +225,33 @@ export type Lane = 'innen' | 'aussen';
 export type Player = 1 | 2;
 
 // EffectFlags Type Definition
-export type EffectFlags = {
+export interface EffectFlags {
+  // bestehende Felder …
   freeInitiativeAvailable: boolean;
-  freeGovernmentAvailable: boolean;
+  freeGovernmentAvailable: boolean;   // (falls ihr das weiter braucht; wird unten nicht mehr benutzt)
+  ngoInitiativeDiscount: number;
+  nextInitiativeDiscounted: boolean;
+
+  // 🔧 NEU: zentrales Refund-Becken für Initiativen (stackbar)
+  nextInitiativeRefund: number;
+
+  // 🔧 Greta-Refund für die erste Regierungskarte pro Zug
+  govRefundAvailable: boolean;
+
+  // 🗑️ Alt: nicht mehr verwenden (optional in Typ lassen, aber nirgendwo nutzen)
   platformRefundAvailable: boolean;
   platformRefundUsed: boolean;
-  ngoInitiativeDiscount: number;
+
+  // Weitere bestehende Felder...
   platformInitiativeDiscount: number;
   diplomatInfluenceTransferUsed: boolean;
   influenceTransferBlocked: boolean;
   nextGovPlus2: boolean;
   nextGovernmentCardBonus: number;
-  nextInitiativeDiscounted: boolean;
   nextInitiativeMinus1: boolean;
   publicEffectDoubled: boolean;
   cannotPlayInitiatives: boolean;
   nextCardProtected: boolean;
   platformAfterInitiativeBonus: boolean;
   interventionEffectReduced: boolean;
-  govRefundAvailable: boolean;        // Greta & Co. (erste Regierungskarte → +1 AP Refund)
-  nextInitiativeRefund: number;       // +X AP Refund auf die nächste Initiative
-};
+}

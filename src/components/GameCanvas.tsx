@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { GameState, Card, PoliticianCard, SpecialCard, Player, Lane } from '../types/game';
 import layoutDef from '../ui/ui_layout_1920x1080.json';
-import { drawCardImage, sortHandCards, getCardActionPointCost } from '../utils/gameUtils';
+import { drawCardImage, sortHandCards } from '../utils/gameUtils';
+import { getNetApCost } from '../utils/ap';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -92,36 +93,41 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // AP-Kosten-Indikator anzeigen (grüne Punkte) - nur für Handkarten
+    // Netto-AP Badge anzeigen (modern) - nur für Handkarten
     if (showAPCost && player) {
-      const apCost = getCardActionPointCost(card, gameState, player);
-      if (apCost > 0) {
-        const dotSize = Math.max(10, Math.floor(s * 0.08));
-        const startX = dx + s - dotSize - 6;
-        const startY = dy + 6;
+      const apInfo = getNetApCost(gameState, player, card, 'innen'); // Default auf innen
+      const netText = `⚡${apInfo.net}`;
 
-        for (let i = 0; i < apCost; i++) {
-          const dotX = startX;
-          const dotY = startY + i * (dotSize + 3);
+      // Badge-Größe berechnen
+      const badgeHeight = Math.max(16, Math.floor(s * 0.12));
+      const badgeWidth = badgeHeight * 2;
+      const badgeX = dx + s - badgeWidth - 6;
+      const badgeY = dy + 6;
 
-          // Schatten für bessere Sichtbarkeit
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-          ctx.beginPath();
-          ctx.arc(dotX + 1, dotY + 1, dotSize / 2, 0, 2 * Math.PI);
-          ctx.fill();
+      // Badge-Hintergrund (grün für 0 AP, gelb für > 0)
+      const bgColor = apInfo.net === 0 ? '#E7F8EF' : '#FFF7E6';
+      const borderColor = apInfo.net === 0 ? '#10b981' : '#f59e0b';
 
-          // Grüner Punkt
-          ctx.fillStyle = '#00ff88';
-          ctx.beginPath();
-          ctx.arc(dotX, dotY, dotSize / 2, 0, 2 * Math.PI);
-          ctx.fill();
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 2);
+      ctx.fill();
 
-          // Weißer Rand für bessere Sichtbarkeit
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-      }
+      // Badge-Rand
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Text
+      ctx.fillStyle = apInfo.net === 0 ? '#065f46' : '#92400e';
+      ctx.font = `bold ${Math.floor(badgeHeight * 0.5)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(netText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+
+      // Reset text align
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
     }
 
     // Auswahl-Rahmen

@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { GameState, Card, PoliticianCard, SpecialCard } from '../types/game';
 import { Specials } from '../data/gameData';
 import { drawCardImage, sortHandCards } from '../utils/gameUtils';
 import { getCardDetails, convertHPToUSD } from '../data/cardDetails';
 import { makeUid } from '../utils/id';
-import { getCardActionPointCost, hasAnyZeroApPlay, wouldBeNetZero, canPlayCard, getNetApCost } from '../utils/ap';
-import { hasPlayableZeroCost } from '../hooks/useGameActions';
+import { wouldBeNetZero, getNetApCost } from '../utils/ap';
 
 interface HandCardModalProps {
   gameState: GameState;
@@ -50,30 +49,30 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
 
 
 
-  // Get target slot for card
-  const getTargetSlot = useCallback((card: Card) => {
-    if (card.kind === 'pol') {
-      const polCard = card as PoliticianCard;
-      const isGovernment = ['Staatsoberhaupt', 'Regierungschef', 'Diplomat', 'Minister', 'Abgeordneter', 'Berater'].includes(polCard.tag);
-      return isGovernment ? 'aussen' : 'innen';
-    } else {
-      const specCard = card as SpecialCard;
-      if (specCard.type === 'Öffentlichkeitskarte') {
-        return 'innen'; // Public cards go to public row
-      }
-      if (specCard.type === 'Dauerhaft-Initiative') {
-        // Would need to determine government vs public based on card effect
-        return 'permanent_government'; // or 'permanent_public'
-      }
-      if (specCard.type === 'Sofort-Initiative') {
-        return 'instant';
-      }
-      if (specCard.type === 'Intervention') {
-        return 'intervention';
-      }
-    }
-    return null;
-  }, []);
+  // Get target slot for card - commented out as unused
+  // const getTargetSlot = useCallback((card: Card) => {
+  //   if (card.kind === 'pol') {
+  //     const polCard = card as PoliticianCard;
+  //     const isGovernment = ['Staatsoberhaupt', 'Regierungschef', 'Diplomat', 'Minister', 'Abgeordneter', 'Berater'].includes(polCard.tag);
+  //     return isGovernment ? 'aussen' : 'innen';
+  //   } else {
+  //     const specCard = card as SpecialCard;
+  //     if (specCard.type === 'Öffentlichkeitskarte') {
+  //       return 'innen'; // Public cards go to public row
+  //     }
+  //     if (specCard.type === 'Dauerhaft-Initiative') {
+  //       // Would need to determine government vs public based on card effect
+  //       return 'permanent_government'; // or 'permanent_public'
+  //     }
+  //     if (specCard.type === 'Sofort-Initiative') {
+  //       return 'instant';
+  //     }
+  //     if (specCard.type === 'Intervention') {
+  //       return 'intervention';
+  //     }
+  //   }
+  //   return null;
+  // }, []);
 
   // Check if target slot is full
   const isSlotFull = useCallback((slot: string) => {
@@ -188,8 +187,8 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
   }
 
   const cardDetails = getCardDetails(currentCard.name);
-  const hand = gameState.hands[currentPlayer];
-  const sel = selectedHandIndex != null ? hand[selectedHandIndex] : null;
+  // const hand = gameState.hands[currentPlayer]; // unused
+  // const sel = selectedHandIndex != null ? hand[selectedHandIndex] : null; // unused
   const laneHint = (currentCard.kind === 'pol')
     ? ((currentCard as any).tag === 'Staatsoberhaupt' || (currentCard as any).tag === 'Regierungschef' || (currentCard as any).tag === 'Diplomat' ? 'aussen' : 'innen')
     : 'innen';
@@ -413,6 +412,68 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
             )}
           </div>
 
+          {/* AP Breakdown */}
+          <div style={{
+            background: '#111827',
+            border: '1px solid #ffffff',
+            borderRadius: '8px',
+            padding: '12px',
+            fontSize: '12px',
+          }}>
+            <div style={{ color: '#9ca3af', marginBottom: '8px', fontWeight: '600' }}>AP-Kosten</div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#e5e7eb',
+              marginBottom: '4px'
+            }}>
+              <span>Basis</span>
+              <span>
+                1 AP → <strong>−{apInfo.cost}</strong>
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#e5e7eb',
+              marginBottom: '4px'
+            }}>
+              <span>Refunds</span>
+              <span>
+                <strong>+{apInfo.refund}</strong>
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: '8px',
+              padding: '6px 8px',
+              background: apInfo.net === 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+              border: `1px solid ${apInfo.net === 0 ? '#10b981' : '#f59e0b'}`,
+              borderRadius: '4px',
+              fontWeight: '600'
+            }}>
+              <span style={{ color: apInfo.net === 0 ? '#10b981' : '#f59e0b' }}>Netto</span>
+              <span style={{ color: apInfo.net === 0 ? '#10b981' : '#f59e0b' }}>
+                {apInfo.net} AP {apInfo.net === 0 ? '· verbraucht keine Aktion' : ''}
+              </span>
+            </div>
+            {apInfo.reasons?.length > 0 && (
+              <ul style={{
+                margin: '8px 0 0 0',
+                padding: '0 0 0 16px',
+                color: '#9ca3af',
+                fontSize: '11px',
+                listStyle: 'disc'
+              }}>
+                {apInfo.reasons.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            )}
+          </div>
+
           {/* Game Effect */}
           <div style={{
             background: '#111827',
@@ -476,8 +537,8 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
               : 'Nicht spielbar'}
           </button>
 
-          {/* UI-Hinweis: Aktionenlimit erreicht - nur noch 0-AP-Züge */}
-          {actionsUsed >= 2 && !wouldBeZero && (
+          {/* Guard-Hinweis für detaillierte Begründung */}
+          {!canPlay && (
             <div style={{
               background: 'rgba(239, 68, 68, 0.1)',
               border: '1px solid #ef4444',
@@ -487,7 +548,16 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
               fontSize: '12px',
               textAlign: 'center',
             }}>
-              Aktionenlimit erreicht – nur noch Züge mit Netto 0 AP erlaubt.
+              ⚠️ {(() => {
+                const currentAP = gameState.actionPoints[currentPlayer] ?? 0;
+                if (currentAP < apInfo.net) {
+                  return `Zu wenig AP: benötigt ${apInfo.net}, vorhanden ${currentAP}`;
+                }
+                if (actionsUsed >= 2 && apInfo.net > 0) {
+                  return 'Nur Netto-0-Züge erlaubt (Aktionslimit erreicht)';
+                }
+                return 'Karte kann nicht gespielt werden';
+              })()}
             </div>
           )}
 
