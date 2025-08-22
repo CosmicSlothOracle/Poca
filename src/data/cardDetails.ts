@@ -1075,7 +1075,7 @@ export const PUBLIC_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Jack Ma': {
     name: 'Jack Ma',
     category: 'Öffentlichkeit',
-    gameEffect: 'Nach einer Initiative: Ziehe 1 Karte + optional -1 HP auf gegnerische Regierungs-Plattform.',
+    gameEffect: 'Beim Ausspielen: Ziehe 1 Karte. Nach einer Initiative: Optional -1 HP auf gegnerische Regierungs-Plattform.',
     deckCost: 7,
     subcategories: ['Plattform', 'Oligarch'],
     nationality: 'Chinesisch',
@@ -1105,7 +1105,7 @@ export const PUBLIC_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Oprah Winfrey': {
     name: 'Oprah Winfrey',
     category: 'Öffentlichkeit',
-    gameEffect: 'Wenn du eine Initiative spielst, darfst du 1 Karte abwerfen und 1 ziehen.',
+    gameEffect: 'Beim Ausspielen: Beide Spieler verlieren eine zufällige Handkarte.',
     deckCost: 5,
     subcategories: ['Medien'],
     nationality: 'US-Amerikanisch',
@@ -1376,13 +1376,13 @@ export const SPECIAL_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Spin Doctor': {
     name: 'Spin Doctor',
     category: 'Sofort-Initiative',
-    gameEffect: '+2 Einfluss auf eine Regierungskarte (oder +1 bei Medien)',
+    gameEffect: 'Beim Ausspielen: +1 Einfluss auf deine stärkste Regierungskarte.',
     deckCost: 2,
     subcategories: ['Mittel'],
     cardType: 'Sofort-Initiative',
     tier: 'T2',
     usage: 'Um eine wichtige Regierungskarte zu stärken',
-    example: 'Vladimir Putin bekommt +2 Einfluss',
+    example: 'Vladimir Putin bekommt +1 Einfluss',
   },
 
   'Digitaler Wahlkampf': {
@@ -1424,25 +1424,25 @@ export const SPECIAL_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Verzögerungsverfahren': {
     name: 'Verzögerungsverfahren',
     category: 'Sofort-Initiative',
-    gameEffect: '+1 Aktionspunkt oder ziehe 1 Karte',
+    gameEffect: 'Beim Ausspielen: +1 Aktionspunkt.',
     deckCost: 1,
     subcategories: ['Klein'],
     cardType: 'Sofort-Initiative',
     tier: 'T1',
-    usage: 'Für Flexibilität',
-    example: 'Du wählst zwischen mehr Aktionen oder mehr Karten',
+    usage: 'Für mehr Aktionspunkte',
+    example: 'Du erhältst sofort +1 AP',
   },
 
   'Opportunist': {
     name: 'Opportunist',
     category: 'Sofort-Initiative',
-    gameEffect: 'Eine Regierungskarte -2 Einfluss, eine andere +2 Einfluss (Wahl gleicher Spieler)',
+    gameEffect: 'Beim Ausspielen: Aktiviert Mirror-Effekt. Einfluss-Boni des Gegners werden auf deine stärkste Regierungskarte gespiegelt.',
     deckCost: 3,
     subcategories: ['Groß'],
     cardType: 'Sofort-Initiative',
     tier: 'T3',
-    usage: 'Um Einfluss umzuverteilen',
-    example: 'Schwache Karte schwächen, starke Karte stärken',
+    usage: 'Für Mirror-Effekte bei Einfluss-Boni',
+    example: 'Gegner spielt Spin Doctor → deine stärkste Regierungskarte bekommt auch +1 Einfluss',
   },
 
   'Think-tank': {
@@ -1587,14 +1587,14 @@ export const SPECIAL_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Algorithmischer Diskurs': {
     name: 'Algorithmischer Diskurs',
     category: 'Dauerhaft-Initiative',
-    gameEffect: 'Bei Plattform-Karten: +1 Aktionspunkt oder ziehe 1 Karte nach Initiative',
+    gameEffect: 'Beim Ausspielen: Reduziert Einfluss basierend auf Plattform/KI-Karten in der Öffentlichkeit. Für jede Plattform/KI-Karte: -1 Einfluss auf stärkste Regierungskarte.',
     deckCost: 2,
     subcategories: ['Öffentlichkeit'],
     cardType: 'Dauerhaft-Initiative',
     tier: 'T2',
     slot: 'Öffentlichkeit',
-    usage: 'Mit Plattform-Strategien',
-    example: 'Mark Zuckerberg gibt dir +1 AP nach jeder Initiative'
+    usage: 'Gegen Plattform/KI-Strategien',
+    example: '3 Plattform-Karten in Öffentlichkeit → -3 Einfluss auf stärkste Regierungskarte'
   },
 
   'Wirtschaftlicher Druck': {

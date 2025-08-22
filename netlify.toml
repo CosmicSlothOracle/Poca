@@ -11,3 +11,5 @@
   NODE_VERSION = "20"
   GIT_LFS_ENABLED = "true"
   GIT_LFS_FETCH_INCLUDE = "*.png,*.jpg,*.jpeg,*.webp,*.gif,*.svg,*.mp3,*.mp4,*.json,*.ai,*.sketch,*.wav,*.pdf,*.psd,*.avi,*.mov,*.mkv,*.flac"
+  CI = "false"
+  GENERATE_SOURCEMAP = "false"

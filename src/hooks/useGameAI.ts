@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
-import { GameState, Card, Player, BuilderEntry } from '../types/game';
+import { GameState, Card, Player } from '../types/game';
 import { PRESET_DECKS } from '../data/gameData';
-import { sumRow, getAllowedLaneForCard, getCardActionPointCost } from '../utils/gameUtils';
+import { sumRow, getCardActionPointCost } from '../utils/gameUtils';
 
 export function useGameAI(
   gameState: GameState,
@@ -30,11 +30,11 @@ export function useGameAI(
     }));
   }, [setGameState]);
 
-  // Enhanced setAiPreset with logging
-  const setAiPresetWithLog = useCallback((preset: keyof typeof PRESET_DECKS) => {
-    console.log('🔧 DEBUG: setAiPreset called with:', preset);
-    setAiPreset(preset);
-  }, []);
+  // Enhanced setAiPreset with logging - temporarily disabled for build
+  // const setAiPresetWithLog = useCallback((preset: keyof typeof PRESET_DECKS) => {
+  //   console.log('🔧 DEBUG: setAiPreset called with:', preset);
+  //   setAiPreset(preset);
+  // }, []);
 
   const runAITurn = useCallback(() => {
     console.log('🔧 DEBUG: runAITurn called - aiEnabled:', aiEnabled, 'current player:', gameState.current);
@@ -330,6 +330,7 @@ export function useGameAI(
 
   const executePutinDoubleIntervention = useCallback((interventionCardIds: number[]) => {
     setGameState(prev => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const player = prev.current;
       // Putin special ability implementation would go here
       log(`🤖 Putin setzt doppelte Intervention ein`);

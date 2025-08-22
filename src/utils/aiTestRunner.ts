@@ -376,6 +376,7 @@ export class AITestRunner {
           nextCardProtected: false,
           platformAfterInitiativeBonus: false,
           interventionEffectReduced: false,
+          opportunistActive: false,
         },
         2: {
           freeInitiativeAvailable: false,
@@ -396,6 +397,7 @@ export class AITestRunner {
           nextCardProtected: false,
           platformAfterInitiativeBonus: false,
           interventionEffectReduced: false,
+          opportunistActive: false,
         }
       }
     };

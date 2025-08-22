@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GameState, Card, PoliticianCard, SpecialCard } from '../types/game';
 import { Specials } from '../data/gameData';
 import { drawCardImage, sortHandCards } from '../utils/gameUtils';

@@ -68,6 +68,7 @@ const initialGameState: GameState = {
       nextCardProtected: false,
       platformAfterInitiativeBonus: false,
       interventionEffectReduced: false,
+      opportunistActive: false,
     },
     2: {
       freeInitiativeAvailable: false,
@@ -88,6 +89,7 @@ const initialGameState: GameState = {
       nextCardProtected: false,
       platformAfterInitiativeBonus: false,
       interventionEffectReduced: false,
+      opportunistActive: false,
     }
   },
   effectQueue: EffectQueueManager.initializeQueue(),

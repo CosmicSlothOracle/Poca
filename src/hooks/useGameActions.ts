@@ -3,11 +3,16 @@ import { GameState, Card, Player, BuilderEntry } from '../types/game';
 import { createDefaultEffectFlags } from '../types/game';
 import { buildDeckFromEntries, sumGovernmentInfluenceWithAuras } from '../utils/gameUtils';
 import { PRESET_DECKS } from '../data/gameData';
-import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard, isNetZeroMove, isInitiativeCard, isGovernmentCard } from '../utils/ap';
+import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard, isInitiativeCard, isGovernmentCard } from '../utils/ap';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { isNetZeroMove } from '../utils/ap';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { drawOne } from '../utils/draw';
 import { triggerCardEffects } from '../effects/cards';
 import { resolveQueue } from '../utils/queue';
 import { applyStartOfTurnHooks } from '../utils/startOfTurnHooks';
+import { checkTrapsOnOpponentPlay, registerTrap, isSystemrelevant, grantOneTimeProtection, isBoycottTrap } from '../utils/traps';
+import { PoliticianCard } from '../types/game';
 
 // Hilfsfunktion: stellt sicher, dass effectFlags vorhanden sind
 const ensureFlags = (s: GameState, p: Player) => {
@@ -411,6 +416,9 @@ export function useGameActions(
         newState.board = { ...newState.board, [player]: playerBoardCloned } as any;
         log(`🃏 Player ${player}: ${playedCard.name} gespielt in ${targetLane === 'aussen' ? 'Regierung' : 'Öffentlichkeit'}`);
 
+        // 3) Nachdem die Karte gelegt wurde: gegnerische Traps prüfen
+        checkTrapsOnOpponentPlay(newState, player, playedCard, log);
+
         // 🎓 Think-tank / generischer Bonus konsumieren
         ensureFlags(newState, player);
         const pf = (newState.effectFlags as any)[player];
@@ -503,6 +511,21 @@ export function useGameActions(
         const typeStr = String(specCard.type || '').toLowerCase();
         const isInitiative = /initiative/.test(typeStr); // matcht "Initiative", "Sofort-Initiative", etc.
 
+                  // 1) Falls es eine "Systemrelevant" ist (sofortiger Buff auf letzte eigene Regierungskarte)
+        if (isSystemrelevant(playedCard)) {
+          const ownBoard = newState.board[player];
+          const candidates = [...ownBoard.aussen, ...ownBoard.innen].filter(c => c.kind === 'pol') as PoliticianCard[];
+          const target = candidates[candidates.length - 1]; // letzte eigene Regierungskarte
+          if (target) {
+            grantOneTimeProtection(target, log);
+          } else {
+            log('🛈 Systemrelevant: Keine eigene Regierungskarte im Spiel – Effekt verpufft.');
+          }
+          // danach die Spezialkarte normal entsorgen
+          newState.discard.push(playedCard);
+          return newState;
+        }
+
         // 1) Dauerhaft-Initiative (Ongoing)
         if (typeStr.includes('dauerhaft')) {
           const slotType = 'government'; // ggf. später per specCard.slot dynamisch
@@ -576,6 +599,9 @@ export function useGameActions(
             // 6) Karteneffekte enqueuen + Queue auflösen
             triggerCardEffects(newState, player, playedCard, 'innen');
             resolveQueue(newState, log);
+
+            // 3) Nachdem die Karte gelegt wurde: gegnerische Traps prüfen
+            checkTrapsOnOpponentPlay(newState, player, playedCard, log);
 
             // 🔥 PUBLIC CARD EFFECTS - Passive effects when played
 
@@ -670,6 +696,13 @@ export function useGameActions(
         }
 
                   // 4) Default: Traps/Interventions
+        // Falls "Boykott-Kampagne" als Trap gelegt wird
+        if (isBoycottTrap(playedCard)) {
+          registerTrap(newState, player, playedCard, log);
+          // NICHT sofort checken – sie wartet auf den Gegner
+          return newState;
+        }
+
         newState.traps[player] = [...newState.traps[player], playedCard];
         log(`P${player} spielt ${playedCard.name} als ${specCard.type}`);
 

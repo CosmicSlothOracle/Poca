@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { GameState, Card, PoliticianCard, SpecialCard, Player, Lane } from '../types/game';
+import { GameState, Card, PoliticianCard, Player, Lane } from '../types/game';
 import layoutDef from '../ui/ui_layout_1920x1080.json';
 import { drawCardImage, sortHandCards } from '../utils/gameUtils';
 import { getNetApCost } from '../utils/ap';
@@ -65,32 +65,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
             drawCardImage(ctx, card, dx, dy, s, 'ui');
 
-    if (card.kind === 'pol') {
-      const polCard = card as PoliticianCard;
-      // influence tag bottom-left
+    // Status-Indikatoren (für alle Board-Karten)
+    // Einfluss-Wert unten links – nur für Politiker
+    if ((card as any).kind === 'pol') {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(dx, dy + s - 22, s, 22);
       ctx.fillStyle = '#D7E7F8';
       ctx.font = 'bold 16px sans-serif';
-      ctx.fillText(`${polCard.influence ?? 0}`, dx + 8, dy + s - 6);
-
-      if (polCard.protected) {
-        ctx.fillStyle = '#1da1f2';
-        ctx.fillRect(dx + s - 22, dy + 6, 16, 16);
-      }
-      if (polCard.deactivated) {
-        ctx.fillStyle = '#b63838';
-        ctx.fillRect(dx + s - 22, dy + 26, 16, 16);
-      }
-    } else if (card.kind === 'spec') {
-      const specCard = card as SpecialCard;
-      if (specCard.type === 'Öffentlichkeitskarte') {
-        // Public cards don't show influence values, but can show status effects
-        if (specCard.deactivated) {
-          ctx.fillStyle = '#b63838';
-          ctx.fillRect(dx + s - 22, dy + 6, 16, 16);
-        }
-      }
+      ctx.fillText(`${(card as any).influence ?? 0}`, dx + 8, dy + s - 6);
+    }
+    // Schutz-Status (blauer Punkt)
+    if ((card as any).protected || ((card as any).shield ?? 0) > 0) {
+      ctx.fillStyle = '#1da1f2';
+      ctx.fillRect(dx + s - 22, dy + 6, 16, 16);
+    }
+    // Deaktiviert-Status (roter Punkt)
+    if ((card as any).deactivated) {
+      ctx.fillStyle = '#b63838';
+      ctx.fillRect(dx + s - 22, dy + 26, 16, 16);
     }
 
     // Netto-AP Badge anzeigen (modern) - nur für Handkarten

@@ -138,6 +138,9 @@ export function createDefaultEffectFlags(): EffectFlags {
     nextCardProtected: false,
     platformAfterInitiativeBonus: false,
     interventionEffectReduced: false,
+
+    // 🔧 NEU: Opportunist-Flag für Mirror-Effekte
+    opportunistActive: false,
   };
 }
 
@@ -254,4 +257,7 @@ export interface EffectFlags {
   nextCardProtected: boolean;
   platformAfterInitiativeBonus: boolean;
   interventionEffectReduced: boolean;
+
+  // 🔧 NEU: Opportunist-Flag für Mirror-Effekte
+  opportunistActive: boolean;
 }

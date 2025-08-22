@@ -38,3 +38,5 @@ Thumbs.db
 
 # Production
 /build
+# Local Netlify folder
+.netlify

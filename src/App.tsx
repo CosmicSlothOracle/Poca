@@ -10,6 +10,7 @@ import { BuilderEntry, PoliticianCard } from './types/game';
 import { Specials, PRESET_DECKS } from './data/gameData';
 import { buildDeckFromEntries } from './utils/gameUtils';
 import { copyDebugSnapshotToClipboard, downloadDebugSnapshot } from './utils/debugExport';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasAnyZeroApPlay } from './utils/ap';
 
 function App() {

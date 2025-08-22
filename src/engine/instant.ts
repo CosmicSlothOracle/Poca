@@ -1,6 +1,7 @@
 import type { GameState, Player, Card } from '../types/game';
 import { EK, EffectKey } from '../data/effectKeys';
 import { MAX_AP } from '../utils/ap';
+import { attemptDisable, grantShield } from '../utils/status';
 
 function normalizeEffectKey(card: any): EffectKey | undefined {
   const raw = String(card.effectKey || '').toLowerCase();
@@ -92,5 +93,53 @@ export function handleInstantInitiative(state: GameState, actor: Player, card: C
 
     default:
       log(`⚠️ Unbekannter effectKey: ${String(ek)} (${card.name})`);
+  }
+}
+
+// Hilfs-Targetsuchen (einfach; passe bei dir an)
+function findCardByUid(state: GameState, uid: number): Card | undefined {
+  const all = [
+    ...state.board[1].innen, ...state.board[1].aussen,
+    ...state.board[2].innen, ...state.board[2].aussen,
+  ];
+  return all.find(c => (c as any).uid === uid);
+}
+
+// Aufruf: wenn Intervention gespielt wurde und ein Target gewählt ist.
+export function applyInterventionEffect(
+  state: GameState,
+  player: Player,
+  card: Card,
+  payload?: { targetUid?: number },
+  log?: (m: string) => void
+) {
+  const name = (card as any).name as string;
+  if (name === 'Boykott-Kampagne') {
+    if (!payload?.targetUid) {
+      log?.('❗ Boykott-Kampagne: kein Ziel angegeben.');
+      return;
+    }
+    const target = findCardByUid(state, payload.targetUid);
+    if (!target) {
+      log?.('❗ Boykott-Kampagne: Ziel nicht gefunden.');
+      return;
+    }
+    log?.(`📢 Boykott: Versuche, ${ (target as any).name ?? 'Ziel' } zu deaktivieren …`);
+    attemptDisable(target, log);
+    return;
+  }
+  if (name === 'Systemrelevant') {
+    if (!payload?.targetUid) {
+      log?.('❗ Systemrelevant: kein Ziel angegeben.');
+      return;
+    }
+    const target = findCardByUid(state, payload.targetUid);
+    if (!target) {
+      log?.('❗ Systemrelevant: Ziel nicht gefunden.');
+      return;
+    }
+    grantShield(target, 1);
+    log?.(`🛡️ Systemrelevant: ${ (target as any).name ?? 'Ziel' } erhält 1x Schutz.`);
+    return;
   }
 }

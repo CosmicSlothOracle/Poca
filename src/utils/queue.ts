@@ -54,6 +54,53 @@ export function resolveQueue(state: GameState, log = (m: string) => {}) {
         log(`[AP] P${ev.player}: ${oldAP} -> ${newAP} (${ev.amount >= 0 ? '+' : ''}${ev.amount}).`);
         break;
       }
+
+      case 'DRAW_CARDS': {
+        const deck = state.decks[ev.player];
+        const hand = state.hands[ev.player];
+        for (let i = 0; i < ev.count; i++) {
+          if (!deck.length) {
+            log(`🪙 P${ev.player}: Deck leer – keine Karte nachgezogen.`);
+            break;
+          }
+          const c = deck.pop()!;
+          hand.push(c);
+          log(`🃏 P${ev.player} zieht ${c.name}.`);
+        }
+        break;
+      }
+
+      case 'DISCARD_RANDOM_FROM_HAND': {
+        const hand = state.hands[ev.player];
+        if (hand.length === 0) break;
+        const idx = Math.floor(Math.random() * hand.length);
+        const [c] = hand.splice(idx, 1);
+        state.discard.push(c);
+        log(`🗑️ P${ev.player}: Zufällige Handkarte deaktiviert → ${c.name}.`);
+        break;
+      }
+
+      case 'ADJUST_INFLUENCE': {
+        const target = ev.targetCard as any;
+        if (!target || ev.delta === 0) break;
+
+        const before = target.influence ?? 0;
+        target.influence = Math.max(0, before + ev.delta);
+        log(`${ev.delta > 0 ? '⬆️' : '⬇️'} ${target.name}: ${before}→${target.influence} (${ev.source}).`);
+
+        // Opportunist-Mirror (nur bei Boni, kein Loop)
+        if (ev.delta > 0 && state.effectFlags?.[ev.player]?.opportunistActive) {
+          const otherPlayer = ev.player === 1 ? 2 : 1;
+          const otherGov = state.board[otherPlayer].aussen.filter(c => c.kind === 'pol' && !(c as any).deactivated);
+          if (otherGov.length > 0) {
+            const mirrorTarget = otherGov.reduce((a, b) => ((a as any).influence >= (b as any).influence ? a : b));
+            const mirrorBefore = (mirrorTarget as any).influence ?? 0;
+            (mirrorTarget as any).influence = Math.max(0, mirrorBefore + ev.delta);
+            log(`🪞 Opportunist: Gegner spiegelt +${ev.delta} Einfluss (${mirrorTarget.name}: ${mirrorBefore}→${(mirrorTarget as any).influence}).`);
+          }
+        }
+        break;
+      }
     }
   }
 
