@@ -4,10 +4,9 @@ import { createDefaultEffectFlags } from '../types/game';
 import { buildDeckFromEntries, sumGovernmentInfluenceWithAuras } from '../utils/gameUtils';
 import { PRESET_DECKS } from '../data/gameData';
 import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard, isInitiativeCard, isGovernmentCard } from '../utils/ap';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { isNetZeroMove } from '../utils/ap';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { drawOne } from '../utils/draw';
+// Temporarily disabled for build
+// import { isNetZeroMove } from '../utils/ap';
+// import { drawOne } from '../utils/draw';
 import { triggerCardEffects } from '../effects/cards';
 import { resolveQueue } from '../utils/queue';
 import { applyStartOfTurnHooks } from '../utils/startOfTurnHooks';
@@ -779,6 +778,7 @@ export function useGameActions(
 
   const endTurn = useCallback((reason: 'button_end_turn' | 'auto' = 'button_end_turn') => {
     setGameState((prev): GameState => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const current = prev.current;
 
       // 1) Schon im Abschluss? -> Nichts tun (Idempotenz)

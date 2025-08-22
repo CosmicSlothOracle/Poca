@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { GameState, Card, Player, ActiveAbility, AbilitySelect } from '../types/game';
+import { GameState, Card, Player } from '../types/game';
 import { ActiveAbilitiesManager, EffectQueueManager } from '../utils/gameUtils';
 
 export function useGameEffects(
