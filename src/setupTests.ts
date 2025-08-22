@@ -1,2 +1,2 @@
 // CRA automatically loads this file before running tests.
-import './__tests__/setup';
+import '@testing-library/jest-dom';

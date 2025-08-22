@@ -59,7 +59,6 @@ global.createTestGameState = () => ({
   effectFlags: {
     1: {
       freeInitiativeAvailable: false,
-      freeGovernmentAvailable: false,
       platformRefundAvailable: false,
       platformRefundUsed: false,
       ngoInitiativeDiscount: 0,
@@ -68,7 +67,6 @@ global.createTestGameState = () => ({
     },
     2: {
       freeInitiativeAvailable: false,
-      freeGovernmentAvailable: false,
       platformRefundAvailable: false,
       platformRefundUsed: false,
       ngoInitiativeDiscount: 0,

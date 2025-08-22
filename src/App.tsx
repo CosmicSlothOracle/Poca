@@ -54,8 +54,9 @@ function App() {
       }
       // 🔧 DEV MODE: Toggle mit 'M' Taste (M für Manual-Mode)
       if (event.key === 'm' || event.key === 'M') {
-        setDevMode(!devMode);
-        log(`🔧 DEV MODE ${!devMode ? 'AKTIVIERT' : 'DEAKTIVIERT'} - KI ist ${!devMode ? 'AUS' : 'AN'}`);
+        const newDevMode = !devMode;
+        setDevMode(newDevMode);
+        log(`🔧 DEV MODE ${newDevMode ? 'AKTIVIERT' : 'DEAKTIVIERT'} - KI ist ${newDevMode ? 'AUS' : 'AN'}`);
       }
       // 🔧 DEV MODE: Zusätzliche Controls für manuelles Testen
       if (devMode) {
@@ -199,7 +200,13 @@ function App() {
         return;
       }
 
-      const card = gameState.hands[currentPlayer][selectedHandIndex];
+      const playerHand = gameState.hands?.[currentPlayer];
+      if (!playerHand || selectedHandIndex < 0 || selectedHandIndex >= playerHand.length) {
+        console.log('❌ ERROR: Ungültige Hand oder Index - Index: ' + selectedHandIndex + ', Player: ' + currentPlayer + ', Hand-Größe: ' + (playerHand?.length || 0));
+        return;
+      }
+
+      const card = playerHand[selectedHandIndex];
       if (!card) {
         console.log('❌ ERROR: Ausgewählte Karte nicht gefunden - Index: ' + selectedHandIndex + ', Player: ' + currentPlayer);
         return;
@@ -220,7 +227,13 @@ function App() {
         return;
       }
 
-      const card = gameState.hands[currentPlayer][selectedHandIndex];
+      const playerHand = gameState.hands?.[currentPlayer];
+      if (!playerHand || selectedHandIndex < 0 || selectedHandIndex >= playerHand.length) {
+        console.log('❌ ERROR: Ungültige Hand oder Index - Index: ' + selectedHandIndex + ', Player: ' + currentPlayer + ', Hand-Größe: ' + (playerHand?.length || 0));
+        return;
+      }
+
+      const card = playerHand[selectedHandIndex];
       if (!card || card.kind !== 'spec') {
         console.log('❌ ERROR: Ausgewählte Karte ist keine Spezialkarte - Kind: ' + (card?.kind || 'null') + ', Player: ' + currentPlayer);
         return;
@@ -300,7 +313,13 @@ function App() {
   const handlePlayCardFromModal = useCallback((index: number, targetSlot?: string) => {
     console.log('🔧 DEBUG: handlePlayCardFromModal called with:', index, targetSlot);
     const currentPlayer = gameState.current;
-    const card = gameState.hands[currentPlayer][index];
+    const playerHand = gameState.hands?.[currentPlayer];
+    if (!playerHand || index < 0 || index >= playerHand.length) {
+      console.log('❌ DEBUG: Invalid hand or index:', index, 'for player:', currentPlayer, 'hand size:', (playerHand?.length || 0));
+      return;
+    }
+
+    const card = playerHand[index];
     if (!card) {
       console.log('❌ DEBUG: No card found at index:', index, 'for player:', currentPlayer);
       return;

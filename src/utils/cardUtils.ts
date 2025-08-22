@@ -99,10 +99,7 @@ export function getCardActionPointCost(card: Card, state: GameState, player: Pla
     const polCard = card as PoliticianCard;
     const lane = getAllowedLaneForCard(card);
 
-    // Free government card from movement
-    if (lane === 'aussen' && flags?.freeGovernmentAvailable) {
-      return 0;
-    }
+    // ⚠️ Keine harte Freistellung mehr für Regierungskarten – Refund-Modell wird in getNetApCost angewandt
   } else if (card.kind === 'spec') {
     const specCard = card as SpecialCard;
 

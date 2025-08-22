@@ -1,6 +1,13 @@
 import { GameState, Player, createDefaultEffectFlags, PoliticianCard } from '../types/game';
 import { isMovementOnBoard } from './movement';
 
+// Helper: Bewegung vorhanden? (Öffentlichkeitsreihe)
+function hasMovementCard(player: Player, state: GameState): boolean {
+  const pub = state.board[player].innen;
+  const names = ['Greta Thunberg', 'Malala Yousafzai', 'Ai Weiwei', 'Alexei Navalny'];
+  return pub.some(c => c.kind === 'pol' && names.includes(c.name) && !(c as PoliticianCard).deactivated);
+}
+
 /**
  * Applies start-of-turn hooks for a player
  *
@@ -10,34 +17,27 @@ import { isMovementOnBoard } from './movement';
  * - Set Greta/Movement refund availability based on board state
  */
 export function applyStartOfTurnHooks(state: GameState, player: Player, log: (m: string) => void) {
-  const f = { ...state.effectFlags[player] };
+  const f = state.effectFlags[player];
 
-  // Greta (Bewegung): erste Regierungskarte gibt +1 AP zurück
-  const gretaActive = state.board[player].innen.some(
-    c => c.kind === 'pol' && c.name === 'Greta Thunberg' && !(c as PoliticianCard).deactivated
+  const hasGreta = state.board[player].innen.some(
+    (c) => (c as any)?.kind === 'pol' && (c as any)?.name === 'Greta Thunberg' && !(c as any)?.deactivated
   );
-  // Nur wenn Greta liegt, aktivieren; sonst aus
-  f.govRefundAvailable = !!gretaActive;
+  const hasJustin = state.board[player].innen.some(
+    (c) => (c as any)?.kind === 'pol' && (c as any)?.name === 'Justin Trudeau' && !(c as any)?.deactivated
+  );
 
-  // Initiative-Refund-Becken bleibt bestehen (z. B. von Bill Gates)
-  // KEIN Reset von f.nextInitiativeRefund hier – es ist stackbar und wird beim Spielen verbraucht.
+  // Greta: first government card this turn → +1 AP
+  f.govRefundAvailable = !!hasGreta;
 
-  // Reset turn-scoped Flags (Initiative-bezogen neu initialisieren)
+  // Justin: first initiative this turn → +1 AP (via nextInitiativeRefund)
+  f.nextInitiativeRefund = hasJustin ? 1 : 0;
+
+  // reset actionable counters
+  state.actionsUsed[player] = 0;
+
+  // (keep your existing resets)
   f.nextInitiativeDiscounted = false;
-  // Plattform-Refund bleibt erhalten, bis er verbraucht wurde, aber "Used" ist turn-lokal -> resetten:
-  if (!f.platformRefundAvailable) {
-    // falls keiner anstand, Sicherheit
-    f.platformRefundUsed = false;
-  } else {
-    f.platformRefundUsed = false;
-  }
-  f.diplomatInfluenceTransferUsed = false;
 
-  state.effectFlags = { ...state.effectFlags, [player]: f };
-}
-
-function hasMovementCard(player: Player, state: GameState): boolean {
-  const pub = state.board[player].innen;
-  const names = ['Greta Thunberg', 'Malala Yousafzai', 'Ai Weiwei', 'Alexei Navalny'];
-  return pub.some(c => c.kind === 'pol' && names.includes(c.name) && !(c as PoliticianCard).deactivated);
+  if (hasGreta) log('🌱 Greta aktiv: Erste Regierungskarte dieses Zuges gibt +1 AP zurück.');
+  if (hasJustin) log('🎖️ Justin aktiv: Erste Initiative dieses Zuges gibt +1 AP zurück.');
 }

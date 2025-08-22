@@ -56,4 +56,10 @@ export function resolveQueue(state: GameState, log = (m: string) => {}) {
       }
     }
   }
+
+  // 🧹 Queue ist leer: Falls Zug-Ende gewünscht, automatisch ausführen
+  if (state.isEndingTurn) {
+    log('✅ Effekte fertig – Zugwechsel wird durchgeführt.');
+    // Flag bleibt gesetzt, damit die aufrufende Funktion weiß, dass der Zug beendet werden soll
+  }
 }

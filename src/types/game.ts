@@ -105,6 +105,8 @@ export interface GameState {
     2: ActiveAbility[];
   };
   pendingAbilitySelect?: AbilitySelect;
+  // 🧹 Zug-Ende-System: Flag für automatischen Zugwechsel nach Queue-Auflösung
+  isEndingTurn?: boolean;
 }
 
 
@@ -113,7 +115,6 @@ export function createDefaultEffectFlags(): EffectFlags {
   return {
     // bestehende Defaults …
     freeInitiativeAvailable: false,
-    freeGovernmentAvailable: false,
     ngoInitiativeDiscount: 0,
     nextInitiativeDiscounted: false,
 
@@ -228,7 +229,6 @@ export type Player = 1 | 2;
 export interface EffectFlags {
   // bestehende Felder …
   freeInitiativeAvailable: boolean;
-  freeGovernmentAvailable: boolean;   // (falls ihr das weiter braucht; wird unten nicht mehr benutzt)
   ngoInitiativeDiscount: number;
   nextInitiativeDiscounted: boolean;
 

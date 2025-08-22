@@ -32,7 +32,7 @@ export function drawOne(state: GameState, p: Player, log: (m: string) => void): 
   hand.push(drawn);
   const count = hand.length;
   // defensiver Fallback, falls Test eine "kaputte" Karte injiziert
-  const displayName = (drawn as any).name ?? (drawn as any).key ?? 'Unbenannte Karte';
+  const displayName = drawn?.name ?? drawn?.key ?? 'Unbenannte Karte';
   log(`🃏 P${p} zieht ${displayName} (${count}/${HAND_LIMIT}).`);
   return true;
 }

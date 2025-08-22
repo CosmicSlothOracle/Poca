@@ -3,7 +3,7 @@ import { GameState, Card, Player, BuilderEntry } from '../types/game';
 import { createDefaultEffectFlags } from '../types/game';
 import { buildDeckFromEntries, sumGovernmentInfluenceWithAuras } from '../utils/gameUtils';
 import { PRESET_DECKS } from '../data/gameData';
-import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard } from '../utils/ap';
+import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard, isNetZeroMove, isInitiativeCard, isGovernmentCard } from '../utils/ap';
 import { drawOne } from '../utils/draw';
 import { triggerCardEffects } from '../effects/cards';
 import { resolveQueue } from '../utils/queue';
@@ -51,7 +51,7 @@ const isCardPlayableNow = (state: GameState, player: Player, card: Card): boolea
 
 export const hasPlayableZeroCost = (state: GameState, player: Player): boolean => {
   for (const c of state.hands[player]) {
-    const { cost } = getCardActionPointCost(state, player, c, pickLane(c));
+    const { cost } = getCardActionPointCost(state, player, c);
     if (cost === 0 && isCardPlayableNow(state, player, c)) return true;
   }
   return false;
@@ -103,6 +103,52 @@ function drawCardsFromDeck(gameState: GameState, player: Player, count: number):
   const deck = [...gameState.decks[player]];
   const drawnCards = deck.splice(0, Math.min(count, deck.length));
   return drawnCards;
+}
+
+// Helper function to really end a turn (extracted from nextTurn logic)
+function reallyEndTurn(gameState: GameState, log: (msg: string) => void): GameState {
+  const current = gameState.current;
+
+  // Flag zurücksetzen - Zug-Ende wird jetzt wirklich durchgeführt
+  gameState.isEndingTurn = false;
+
+  // ✅ Karte nachziehen am Ende eines Zugs (nur wenn NICHT "pass")
+  if (!gameState.passed[current]) {
+    const drawnCard = gameState.decks[current].shift();
+    if (drawnCard) {
+      gameState.hands[current].push(drawnCard);
+      log(`🔥 Zug-Ende: +1 Karte gezogen (${drawnCard.name})`);
+    }
+  } else {
+    log(`⏭️ P${current} hat gepasst – kein Nachziehen.`);
+  }
+
+  // Check if round should end
+  const shouldEndRound = checkRoundEnd(gameState);
+  if (shouldEndRound) {
+    log(`🏁 Runde ${gameState.round} wird beendet (Zug-Ende).`);
+    return resolveRound(gameState, log);
+  }
+
+  // Spielerwechsel + AP/Actions reset
+  const newCurrent: Player = current === 1 ? 2 : 1;
+  gameState.current = newCurrent;
+  gameState.actionPoints = { ...gameState.actionPoints, [newCurrent]: 2 };
+  gameState.actionsUsed = { ...gameState.actionsUsed, [newCurrent]: 0 };
+  gameState.passed = { ...gameState.passed, [newCurrent]: false };
+
+  // Apply new start-of-turn hooks
+  applyStartOfTurnHooks(gameState, newCurrent, log);
+
+  // Reset turn-bezogener Flag-Nutzungen
+  const f = gameState.effectFlags?.[newCurrent];
+  if (f) {
+    f.platformRefundUsed = false;
+  }
+
+  log(`🔄 Zug-Ende: Spieler ${newCurrent} ist am Zug (2 AP verfügbar)`);
+
+  return gameState;
 }
 
 // Helper function to resolve round and start new one
@@ -309,38 +355,36 @@ export function useGameActions(
         log(`💻 Plattform-Karten in Hand P${player}: ${platformCards.map(c => c.name).join(', ')}`);
       }
 
-      // 1) Zentrale Play-Gate-Logik
+      // PATCH C: Beim Ausspielen NETTO verbuchen & Flags verbrauchen
       const selectedCard = hand[handIndex];
-      const can = canPlayCard(prev, player, selectedCard, lane);
-      if (!can.ok) {
-        log(`❌ Kann ${selectedCard.name} nicht spielen: ${can.reason ?? 'Bedingungen nicht erfüllt'}.`);
+      if (!canPlayCard(prev, player, selectedCard)) {
+        log('🚫 Kann Karte nicht spielen (Aktionslimit & nicht 0-AP).');
         return prev;
       }
 
-      const kind = (selectedCard as any).kind ?? '';
-      const isInitiative = kind === 'spec' && /initiative/i.test((selectedCard as any).type ?? '');
+      const { net } = getNetApCost(prev, player, selectedCard);
 
-      // ✅ Netto-AP verwenden
-      const { cost: apCost, refund: apRefund, net: apNet, reasons: apReasons } =
-        getNetApCost(prev, player, selectedCard, lane);
-
-      // Aktionen-Regel: nur wenn net > 0 eine Aktion verbrauchen
+      // AP NETTO abziehen
       const newState = { ...prev };
-      if (apNet > 0) {
-        newState.actionsUsed[player] += 1;
-      }
+      newState.actionPoints[player] = Math.max(0, prev.actionPoints[player] - net);
 
-      // AP abziehen nach Netto
-      newState.actionPoints[player] = Math.max(0, prev.actionPoints[player] - apNet);
-
-      // UI-Log konsistent
-      if (apNet === 0) {
-        log(`🆓 Netto-0-Zug: −${apCost} AP +${apRefund} Refund → 0 AP (keine Aktion verbraucht)`);
+      // Aktionen nur bei net>0 erhöhen
+      if (net > 0) {
+        newState.actionsUsed[player] = (prev.actionsUsed[player] ?? 0) + 1;
       } else {
-        log(`💳 Kosten verbucht: −${apCost} AP +${apRefund} Refund = ${apNet} Netto`);
+        log('🆓 Netto-0-Zug: keine Aktion verbraucht.');
       }
-      if (apReasons?.length) {
-        log(`🔎 Gründe: ${apReasons.join(' · ')}`);
+
+      // 🔧 Flags sicher initialisieren
+      ensureFlags(newState, player);
+
+      // Consume single-use flags
+      if (isGovernmentCard(selectedCard) && newState.effectFlags[player].govRefundAvailable) {
+        newState.effectFlags[player].govRefundAvailable = false;
+      }
+
+      if (isInitiativeCard(selectedCard) && (newState.effectFlags[player].nextInitiativeRefund ?? 0) > 0) {
+        newState.effectFlags[player].nextInitiativeRefund!--;
       }
 
       // 🔧 Flags sicher initialisieren
@@ -409,10 +453,10 @@ export function useGameActions(
         // 🔄 Refund-Verbrauch NUR beim tatsächlichen Spielen
 
         // 1) Initiative: Refund-Becken teilweise/ganz abbauen
-        if (isInitiative) {
+        if (isInitiativeCard(playedCard)) {
           const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
           if (poolBefore > 0) {
-            const consumed = Math.min(apCost, poolBefore); // verbrauche bis zur Höhe der (rabattierten) Kosten
+            const consumed = Math.min(1, poolBefore); // verbrauche bis zur Höhe der (rabattierten) Kosten
             newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
             if (consumed > 0) {
               log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
@@ -420,12 +464,7 @@ export function useGameActions(
           }
         }
 
-        // 2) Greta-Refund (erste Regierungskarte): Flag danach deaktivieren
-        const isGovernment = kind === 'pol';
-        if (isGovernment && newState.effectFlags[player]?.govRefundAvailable) {
-          newState.effectFlags[player].govRefundAvailable = false;
-          log('🎟️ Greta-Refund verbraucht: nächste Regierungskarte dieser Runde kostet wieder normal (Refund entfernt).');
-        }
+
 
         // *** Karten-Soforteffekte (Beispiel Bill Gates -> Plattform-Refund für nächste Initiative) ***
         try {
@@ -481,7 +520,7 @@ export function useGameActions(
           // 🔄 Refund-Verbrauch für Dauerhaft-Initiative
           const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
           if (poolBefore > 0) {
-            const consumed = Math.min(apCost, poolBefore);
+            const consumed = Math.min(1, poolBefore);
             newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
             if (consumed > 0) {
               log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
@@ -509,7 +548,7 @@ export function useGameActions(
           // 🔄 Refund-Verbrauch für Instant-Initiative
           const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
           if (poolBefore > 0) {
-            const consumed = Math.min(apCost, poolBefore);
+            const consumed = Math.min(1, poolBefore);
             newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
             if (consumed > 0) {
               log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
@@ -626,7 +665,7 @@ export function useGameActions(
           }
 
           // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-          applyApRefundsAfterPlay(newState, player, selectedCard, log);
+          applyApRefundsAfterPlay(newState, player, selectedCard);
           return newState;
         }
 
@@ -639,7 +678,7 @@ export function useGameActions(
         resolveQueue(newState, log);
 
         // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-        applyApRefundsAfterPlay(newState, player, selectedCard, log);
+        applyApRefundsAfterPlay(newState, player, selectedCard);
         return newState;
       }
 
@@ -648,7 +687,7 @@ export function useGameActions(
       resolveQueue(newState, log);
 
       // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-      applyApRefundsAfterPlay(newState, player, selectedCard, log);
+      applyApRefundsAfterPlay(newState, player, selectedCard);
 
             // 🔧 TURN MANAGEMENT: Nur wechseln, wenn 2 Aktionen verbraucht UND keine 0-AP-Plays mehr möglich
       if (newState.actionsUsed[player] >= 2) {
@@ -694,56 +733,49 @@ export function useGameActions(
           f.platformRefundUsed = true;
           log(`♻️ Plattform-Refund: +1 AP (${ap0}→${newState.actionPoints[player]}) — 1x pro Zug.`);
         }
+
+        // ✅ Greta-Refund nur einmal pro Zug
+        if (isGovernmentCard(selectedCard) && newState.effectFlags?.[player]?.govRefundAvailable) {
+          newState.effectFlags[player].govRefundAvailable = false;
+        }
       }
 
       return newState;
     });
   }, [setGameState, log]);
 
-  const nextTurn = useCallback(() => {
+  const endTurn = useCallback((reason: 'button_end_turn' | 'auto' = 'button_end_turn') => {
     setGameState((prev): GameState => {
-      const newState = { ...prev };
       const current = prev.current;
 
-      // ✅ Karte nachziehen am Ende eines Zugs (nur wenn NICHT "pass")
-      if (!prev.passed[current]) {
-        drawOne(newState, current, log);
-      } else {
-        log(`⏭️ P${current} hat gepasst – kein Nachziehen.`);
+      // 1) Schon im Abschluss? -> Nichts tun (Idempotenz)
+      if (prev.isEndingTurn) {
+        log('🔁 Zugabschluss läuft bereits – warte auf Queue.');
+        return prev;
       }
 
-      // Check if round should end
-      const shouldEndRound = checkRoundEnd(newState);
+      const newState = { ...prev, isEndingTurn: true };
 
-      if (shouldEndRound) {
-        log(`🏁 Runde ${newState.round} wird beendet (manueller Turn-Wechsel).`);
-        return resolveRound(newState, log);
+      // 2) Hängen noch Effekte in der Queue? -> Auflösen lassen
+      if (newState._effectQueue && newState._effectQueue.length > 0) {
+        log('⏳ Effekte werden noch aufgelöst – Zugwechsel folgt automatisch.');
+        resolveQueue(newState, log);
+        // Nach Queue-Auflösung: Wenn Flag noch gesetzt, Zug beenden
+        if (newState.isEndingTurn) {
+          return reallyEndTurn(newState, log);
+        }
+        return newState;
       }
 
-      // Spielerwechsel + AP/Actions reset
-      const newCurrent: Player = current === 1 ? 2 : 1;
-      newState.current = newCurrent;
-      newState.actionPoints = { ...newState.actionPoints, [newCurrent]: 2 };
-      newState.actionsUsed = { ...newState.actionsUsed, [newCurrent]: 0 };
-      newState.passed = { ...newState.passed, [newCurrent]: false };
-
-      // Apply new start-of-turn hooks
-      applyStartOfTurnHooks(newState, newCurrent, log);
-
-      // Reset turn-bezogener Flag-Nutzungen
-      const f = newState.effectFlags?.[newCurrent];
-      if (f) {
-        // Nur Nutzungsmarker zurücksetzen – KEINE permanenten Effekte löschen
-        f.platformRefundUsed = false;
-        // Falls du Free-Play einmal pro Turn willst, hier resetten:
-        // f.freeInitiativeAvailable = false; // nur wenn design so will
-        // f.freeGovernmentAvailable = false; // dto.
-      }
-
-      log(`Spieler ${newCurrent} ist am Zug (2 AP verfügbar)`);
-      return newState;
+      // 3) Keine Effekte mehr -> sofort beenden
+      return reallyEndTurn(newState, log);
     });
   }, [setGameState, log]);
+
+  // Legacy: nextTurn als Alias für endTurn für Kompatibilität
+  const nextTurn = useCallback(() => {
+    endTurn('auto');
+  }, [endTurn]);
 
     const passTurn = useCallback((player: Player) => {
     console.log(`🔧 DEBUG: passTurn called for player ${player}`);
@@ -803,6 +835,7 @@ export function useGameActions(
     startMatchVsAI,
     playCard,
     nextTurn,
+    endTurn,
     passTurn,
   };
 }

@@ -359,7 +359,6 @@ export class AITestRunner {
       effectFlags: {
         1: {
           freeInitiativeAvailable: false,
-          freeGovernmentAvailable: false,
           platformRefundAvailable: false,
           platformRefundUsed: false,
           ngoInitiativeDiscount: 0,
@@ -380,7 +379,6 @@ export class AITestRunner {
         },
         2: {
           freeInitiativeAvailable: false,
-          freeGovernmentAvailable: false,
           platformRefundAvailable: false,
           platformRefundUsed: false,
           ngoInitiativeDiscount: 0,

@@ -51,7 +51,6 @@ const initialGameState: GameState = {
   effectFlags: {
     1: {
       freeInitiativeAvailable: false,
-      freeGovernmentAvailable: false,
       platformRefundAvailable: false,
       platformRefundUsed: false,
       ngoInitiativeDiscount: 0,
@@ -72,7 +71,6 @@ const initialGameState: GameState = {
     },
     2: {
       freeInitiativeAvailable: false,
-      freeGovernmentAvailable: false,
       platformRefundAvailable: false,
       platformRefundUsed: false,
       ngoInitiativeDiscount: 0,
@@ -1307,6 +1305,7 @@ export function useGameState() {
     dealStartingHands,
     resolveRound,
     nextTurn: gameActions.nextTurn,
+    endTurn: gameActions.endTurn,
     checkAndAdvanceTurn,
     shouldAdvanceTurn,
 
