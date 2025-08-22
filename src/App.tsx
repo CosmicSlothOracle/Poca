@@ -5,6 +5,7 @@ import { GameInfoModal } from './components/GameInfoModal';
 import { EventLogModal } from './components/EventLogModal';
 import { HandCardModal } from './components/HandCardModal';
 import { GameLogModal } from './components/GameLogModal';
+import UILayoutEditor from './components/UILayoutEditor';
 import { useGameState } from './hooks/useGameState';
 import { BuilderEntry, PoliticianCard } from './types/game';
 import { Specials, PRESET_DECKS } from './data/gameData';
@@ -25,6 +26,9 @@ function App() {
 
   // 🔧 DEV MODE: Toggle für lokales Testing ohne KI
   const [devMode, setDevMode] = useState(false);
+
+  // UI Layout Editor Route
+  const [currentRoute, setCurrentRoute] = useState<'game' | 'ui-editor'>('game');
 
   const {
     gameState,
@@ -73,6 +77,12 @@ function App() {
           log(`⏭️ Player ${gameState.current} beendet Zug`);
         }
       }
+
+      // UI Layout Editor Toggle mit 'U' Taste
+      if (event.key === 'u' || event.key === 'U') {
+        setCurrentRoute(currentRoute === 'game' ? 'ui-editor' : 'game');
+      }
+
       // Debug snapshot: Ctrl+D copies to clipboard, Shift+D downloads file
       if ((event.key === 'd' || event.key === 'D') && event.ctrlKey) {
         copyDebugSnapshotToClipboard(gameState).then(() => {
@@ -87,7 +97,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameInfoModalOpen, eventLogModalOpen, gameLogModalOpen, devMode, log, gameState, passTurn, nextTurn]);
+  }, [gameInfoModalOpen, eventLogModalOpen, gameLogModalOpen, devMode, log, gameState, passTurn, nextTurn, currentRoute]);
 
   const handleCardClick = useCallback((data: any) => {
     console.log('🔧 DEBUG: handleCardClick called with:', data);
@@ -471,92 +481,136 @@ function App() {
       height: '100vh',
       overflow: 'hidden',
     }}>
+      {/* Route Navigation */}
       <div style={{
         position: 'fixed',
-        inset: 0,
-        display: 'grid',
-        gridTemplateRows: '1fr',
-        gap: 0,
-        padding: 0,
+        top: '10px',
+        left: '10px',
+        zIndex: 1001,
+        display: 'flex',
+        gap: '8px',
       }}>
+        <button
+          onClick={() => setCurrentRoute('game')}
+          style={{
+            background: currentRoute === 'game' ? '#3b82f6' : '#374151',
+            color: 'white',
+            border: 'none',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          🎮 Game
+        </button>
+        <button
+          onClick={() => setCurrentRoute('ui-editor')}
+          style={{
+            background: currentRoute === 'ui-editor' ? '#3b82f6' : '#374151',
+            color: 'white',
+            border: 'none',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          🎨 UI Editor
+        </button>
+      </div>
+
+      {currentRoute === 'ui-editor' ? (
+        <UILayoutEditor />
+      ) : (
         <div style={{
-          position: 'relative',
-          overflow: 'hidden',
-          background: '#0e141b',
+          position: 'fixed',
+          inset: 0,
+          display: 'grid',
+          gridTemplateRows: '1fr',
+          gap: 0,
+          padding: 0,
         }}>
-          <GameCanvas
-            gameState={gameState}
-            selectedHandIndex={selectedHandIndex}
-            onCardClick={handleCardClick}
-            onCardHover={handleCardHover}
-            devMode={devMode}
-          />
-
-          <DeckBuilder
-            isOpen={deckBuilderOpen}
-            onClose={() => setDeckBuilderOpen(false)}
-            onApplyDeck={handleApplyDeck}
-            onStartMatch={handleStartMatch}
-          />
-
-          {!deckBuilderOpen && (
-            <GameInfoModal
-              gameState={gameState}
-              isVisible={gameInfoModalOpen}
-              onToggle={() => setGameInfoModalOpen(!gameInfoModalOpen)}
-              onPassTurn={passTurn}
-              onToggleLog={() => setGameLogModalOpen(!gameLogModalOpen)}
-              onCardClick={handleCardClick}
-              devMode={devMode}
-            />
-          )}
-
-          {!deckBuilderOpen && (
-            <EventLogModal
-              gameState={gameState}
-              isVisible={eventLogModalOpen}
-              onToggle={() => setEventLogModalOpen(!eventLogModalOpen)}
-            />
-          )}
-
-          {!deckBuilderOpen && (
-            <HandCardModal
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            background: '#0e141b',
+          }}>
+            <GameCanvas
               gameState={gameState}
               selectedHandIndex={selectedHandIndex}
-              isVisible={handCardModalOpen}
-              onClose={() => setHandCardModalOpen(false)}
-              onPlayCard={handlePlayCardFromModal}
+              onCardClick={handleCardClick}
+              onCardHover={handleCardHover}
+              devMode={devMode}
             />
-          )}
 
-          {!deckBuilderOpen && (
-            <GameLogModal
-              gameState={gameState}
-              isVisible={gameLogModalOpen}
-              onToggle={() => setGameLogModalOpen(!gameLogModalOpen)}
+            <DeckBuilder
+              isOpen={deckBuilderOpen}
+              onClose={() => setDeckBuilderOpen(false)}
+              onApplyDeck={handleApplyDeck}
+              onStartMatch={handleStartMatch}
             />
-          )}
 
-          {renderTooltip()}
+            {!deckBuilderOpen && (
+              <GameInfoModal
+                gameState={gameState}
+                isVisible={gameInfoModalOpen}
+                onToggle={() => setGameInfoModalOpen(!gameInfoModalOpen)}
+                onPassTurn={passTurn}
+                onToggleLog={() => setGameLogModalOpen(!gameLogModalOpen)}
+                onCardClick={handleCardClick}
+                devMode={devMode}
+              />
+            )}
 
-          {/* 🔧 DEV MODE Indikator */}
-          {devMode && (
-            <div style={{
-              position: 'fixed',
-              top: '10px',
-              right: '10px',
-              background: '#ff6b35',
-              color: 'white',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-              zIndex: 1000,
-            }}>
-              🔧 DEV MODE - KI AUS
-            </div>
-          )}
+            {!deckBuilderOpen && (
+              <EventLogModal
+                gameState={gameState}
+                isVisible={eventLogModalOpen}
+                onToggle={() => setEventLogModalOpen(!eventLogModalOpen)}
+              />
+            )}
+
+            {!deckBuilderOpen && (
+              <HandCardModal
+                gameState={gameState}
+                selectedHandIndex={selectedHandIndex}
+                isVisible={handCardModalOpen}
+                onClose={() => setHandCardModalOpen(false)}
+                onPlayCard={handlePlayCardFromModal}
+              />
+            )}
+
+            {!deckBuilderOpen && (
+              <GameLogModal
+                gameState={gameState}
+                isVisible={gameLogModalOpen}
+                onToggle={() => setGameLogModalOpen(!gameLogModalOpen)}
+              />
+            )}
+
+            {renderTooltip()}
+
+            {/* 🔧 DEV MODE Indikator */}
+            {devMode && (
+              <div style={{
+                position: 'fixed',
+                top: '10px',
+                right: '10px',
+                background: '#ff6b35',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                zIndex: 1000,
+              }}>
+                🔧 DEV MODE - KI AUS
+              </div>
+            )}
 
           {/* 🎯 Current Player Indicator (immer sichtbar im Dev Mode) */}
           {devMode && (
@@ -587,6 +641,7 @@ function App() {
           )}
         </div>
       </div>
+    )}
     </div>
   );
 }
