@@ -54,13 +54,16 @@ export function getNetApCost(
   // optional lane param for backwards-compat with older calls; ignored
   _lane?: 'innen' | 'aussen'
 ): { cost: number; refund: number; net: number; reasons: string[] } {
-  const { cost, reasons } = getCardActionPointCost(state, p, card);
+  const cost = 1; // Einheitlich
   let refund = 0;
+  const reasons: string[] = [];
 
-  // Greta: first government card per turn → +1 AP
-  if (isGovernmentCard(card) && state.effectFlags?.[p]?.govRefundAvailable) {
+  const isGov = (card as any).kind === 'pol';
+
+  // Bewegung: +1 AP bei erster Regierungskarte
+  if (isGov && state.effectFlags?.[p]?.govRefundAvailable) {
     refund += 1;
-    reasons.push('Greta: +1 AP (erste Regierungskarte)');
+    reasons.push('Bewegung: +1 AP bei erster Regierungskarte');
   }
 
   // Justin or any "next initiative gets +1" source → use nextInitiativeRefund
@@ -83,7 +86,7 @@ export function getNetApCost(
     console.debug('[AP DEBUG]', {
       player: p,
       card: (card as any)?.name,
-      base: BASE_AP_COST,
+      base: 1,
       costAfterDiscounts: cost,
       refund,
       net,

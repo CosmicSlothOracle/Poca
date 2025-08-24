@@ -36,16 +36,14 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
 
   // Update current index when selectedHandIndex changes
   useEffect(() => {
-    console.log('🔧 DEBUG: Modal useEffect triggered:', { selectedHandIndex, isVisible, currentPlayer });
     if (selectedHandIndex !== null && isVisible) {
       const selectedCard = gameState.hands[currentPlayer][selectedHandIndex];
       const sortedIndex = sortedHand.findIndex((card: Card) => card.uid === selectedCard?.uid);
-      console.log('🔧 DEBUG: Found card:', selectedCard?.name, 'sortedIndex:', sortedIndex, 'player:', currentPlayer);
       if (sortedIndex !== -1) {
         setCurrentIndex(sortedIndex);
       }
     }
-  }, [selectedHandIndex, isVisible, gameState.hands, sortedHand, currentPlayer]);
+  }, [selectedHandIndex, isVisible, currentPlayer]); // Removed gameState.hands and sortedHand to prevent infinite loop
 
 
 
@@ -111,10 +109,8 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
 
   // Handle automatic card placement
   const handleAutoPlay = useCallback(() => {
-    console.log('🔧 DEBUG: handleAutoPlay called');
     const card = sortedHand[currentIndex];
     if (!card) {
-      console.log('❌ DEBUG: No currentCard');
       return;
     }
 
@@ -129,7 +125,7 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
 
     const targetSlot = targetSlotFromCard(card);
 
-    console.log('🔧 DEBUG: originalIndex:', originalIndex, 'targetSlot:', targetSlot);
+
 
     if (isSlotFull(targetSlot)) {
       console.log('❌ DEBUG: Slot is full');
@@ -180,9 +176,7 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
   //   onClose();
   // }, [waitingForReplacement, currentCard, gameState.hands, onPlayCard, onClose]);
 
-  console.log('🔧 DEBUG: Modal render check:', { isVisible, currentCard: currentCard?.name });
   if (!isVisible || !currentCard) {
-    console.log('🔧 DEBUG: Modal not rendering - isVisible:', isVisible, 'currentCard:', !!currentCard);
     return null;
   }
 
@@ -194,23 +188,13 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
     : 'innen';
 
   // Modal/Play-Gate: "nur Zero-AP möglich" korrekt behandeln
-  const wouldBeZero = wouldBeNetZero(gameState, currentPlayer, currentCard, laneHint);
+  const { net } = getNetApCost(gameState, currentPlayer, currentCard, laneHint);
+  const wouldZero = net <= 0;
   const actionsUsed = gameState.actionsUsed[currentPlayer];
-  const apInfo = getNetApCost(gameState, currentPlayer, currentCard, laneHint);
+  const canPlay = actionsUsed < 2 || wouldZero;
+  const onlyZeroApPossible = actionsUsed >= 2 && wouldZero;
 
-  const canPlay = actionsUsed < 2 || wouldBeZero;
-  const onlyZeroApPossible = actionsUsed >= 2 && wouldBeZero;
 
-  console.log('🔧 DEBUG: canPlay calculation:', {
-    current: gameState.current,
-    currentPlayer: currentPlayer,
-    actionPoints: gameState.actionPoints[currentPlayer],
-    actionsUsed: actionsUsed,
-    wouldBeZero: wouldBeZero,
-    canPlay: canPlay,
-    breakdown: `actionsUsed<2=${actionsUsed < 2} || wouldBeZero=${wouldBeZero}`,
-    onlyZeroApPossible: onlyZeroApPossible
-  });
 
   return (
     <div style={{
@@ -430,7 +414,7 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
             }}>
               <span>Basis</span>
               <span>
-                1 AP → <strong>−{apInfo.cost}</strong>
+                1 AP → <strong>−1</strong>
               </span>
             </div>
             <div style={{
@@ -442,7 +426,7 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
             }}>
               <span>Refunds</span>
               <span>
-                <strong>+{apInfo.refund}</strong>
+                <strong>+{1 - net}</strong>
               </span>
             </div>
             <div style={{
@@ -451,27 +435,16 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
               justifyContent: 'space-between',
               marginTop: '8px',
               padding: '6px 8px',
-              background: apInfo.net === 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-              border: `1px solid ${apInfo.net === 0 ? '#10b981' : '#f59e0b'}`,
+              background: net === 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+              border: `1px solid ${net === 0 ? '#10b981' : '#f59e0b'}`,
               borderRadius: '4px',
               fontWeight: '600'
             }}>
-              <span style={{ color: apInfo.net === 0 ? '#10b981' : '#f59e0b' }}>Netto</span>
-              <span style={{ color: apInfo.net === 0 ? '#10b981' : '#f59e0b' }}>
-                {apInfo.net} AP {apInfo.net === 0 ? '· verbraucht keine Aktion' : ''}
+              <span style={{ color: net === 0 ? '#10b981' : '#f59e0b' }}>Netto</span>
+              <span style={{ color: net === 0 ? '#10b981' : '#f59e0b' }}>
+                {net} AP {net === 0 ? '· verbraucht keine Aktion' : ''}
               </span>
             </div>
-            {apInfo.reasons?.length > 0 && (
-              <ul style={{
-                margin: '8px 0 0 0',
-                padding: '0 0 0 16px',
-                color: '#9ca3af',
-                fontSize: '11px',
-                listStyle: 'disc'
-              }}>
-                {apInfo.reasons.map((r, i) => <li key={i}>{r}</li>)}
-              </ul>
-            )}
           </div>
 
           {/* Game Effect */}
@@ -533,7 +506,7 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
             {waitingForReplacement
               ? 'Karte zum Tauschen wählen'
               : canPlay
-              ? `Spielen (Netto ${apInfo.net} AP)`
+              ? `Spielen (Netto ${net} AP)`
               : 'Nicht spielbar'}
           </button>
 
@@ -550,10 +523,10 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
             }}>
               ⚠️ {(() => {
                 const currentAP = gameState.actionPoints[currentPlayer] ?? 0;
-                if (currentAP < apInfo.net) {
-                  return `Zu wenig AP: benötigt ${apInfo.net}, vorhanden ${currentAP}`;
+                if (currentAP < net) {
+                  return `Zu wenig AP: benötigt ${net}, vorhanden ${currentAP}`;
                 }
-                if (actionsUsed >= 2 && apInfo.net > 0) {
+                if (actionsUsed >= 2 && net > 0) {
                   return 'Nur Netto-0-Züge erlaubt (Aktionslimit erreicht)';
                 }
                 return 'Karte kann nicht gespielt werden';

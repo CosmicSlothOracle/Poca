@@ -42,7 +42,7 @@ export interface BasePolitician {
   key: string;
   name: string;
   influence: number; // 🔥 VEREINFACHT: M → influence
-  tag: string;
+  tag?: string; // 🔧 FIX: Optional für Kompatibilität mit gameData.ts
   T: number;
   BP?: number;
   effect?: string;
@@ -55,7 +55,7 @@ export interface BaseSpecial {
   type: string;
   speed?: string;
   bp: number;
-  effect: string;
+  effect?: string; // 🔧 FIX: Optional für Kompatibilität mit gameData.ts
   tier: number;
   impl: string;
   tag?: string;
@@ -141,6 +141,15 @@ export function createDefaultEffectFlags(): EffectFlags {
 
     // 🔧 NEU: Opportunist-Flag für Mirror-Effekte
     opportunistActive: false,
+
+    // 🔥 CLUSTER 1: Passive Effekte Flags
+    markZuckerbergUsed: false, // Mark Zuckerberg: einmal pro Runde
+
+    // 🔥 CLUSTER 3: Temporäre Initiative-Boni (bis Rundenende)
+    scienceInitiativeBonus: false,    // Jennifer Doudna: +1 Einfluss bei Initiativen
+    militaryInitiativePenalty: false, // Noam Chomsky: -1 Einfluss bei Initiativen (für Gegner)
+    healthInitiativeBonus: false,     // Anthony Fauci: +1 Einfluss bei Initiativen
+    cultureInitiativeBonus: false,    // Ai Weiwei: +1 Karte +1 AP bei Initiativen
   };
 }
 
@@ -260,4 +269,13 @@ export interface EffectFlags {
 
   // 🔧 NEU: Opportunist-Flag für Mirror-Effekte
   opportunistActive: boolean;
+
+  // 🔥 CLUSTER 1: Passive Effekte Flags
+  markZuckerbergUsed: boolean; // Mark Zuckerberg: einmal pro Runde
+
+  // 🔥 CLUSTER 3: Temporäre Initiative-Boni (bis Rundenende)
+  scienceInitiativeBonus: boolean;    // Jennifer Doudna: +1 Einfluss bei Initiativen
+  militaryInitiativePenalty: boolean; // Noam Chomsky: -1 Einfluss bei Initiativen (für Gegner)
+  healthInitiativeBonus: boolean;     // Anthony Fauci: +1 Einfluss bei Initiativen
+  cultureInitiativeBonus: boolean;    // Ai Weiwei: +1 Karte +1 AP bei Initiativen
 }
