@@ -862,11 +862,8 @@ export function useGameActions(
       // 2) Hängen noch Effekte in der Queue? -> Auflösen lassen
       if (newState._effectQueue && newState._effectQueue.length > 0) {
         log('⏳ Effekte werden noch aufgelöst – Zugwechsel folgt automatisch.');
-        // Queue needs array of events
-        if (newState._queue && newState._queue.length > 0) {
-          resolveQueue(newState, newState._queue);
-          newState._queue = [];
-        }
+        resolveQueue(newState, [...newState._effectQueue]);
+        newState._effectQueue = [];
         // Nach Queue-Auflösung: Wenn Flag noch gesetzt, Zug beenden
         if (newState.isEndingTurn) {
           return reallyEndTurn(newState, log);

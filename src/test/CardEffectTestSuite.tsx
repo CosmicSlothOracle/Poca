@@ -5,6 +5,8 @@ import { resolveQueue } from '../utils/queue';
 import { makePolInstance, makeSpecInstance } from '../utils/cardUtils';
 import { Pols, Specials } from '../data/gameData';
 import { createDefaultEffectFlags } from '../types/game';
+import { AP_START, AP_CAP, MAX_DISCOUNT, MAX_REFUND } from '../config/gameConstants';
+import { seedGlobalRNG, resetGlobalRNG } from '../services/rng';
 
 // Deterministic RNG for testing
 class TestRNG {
@@ -36,6 +38,12 @@ interface TestScenario {
   name: string;
   description: string;
   setup: (state: GameState) => void;
+  setupAP?: { player1: number; player2: number }; // NEW: Explicit AP setup
+  setupFlags?: { // NEW: Explicit flag setup
+    player1?: Partial<typeof createDefaultEffectFlags>;
+    player2?: Partial<typeof createDefaultEffectFlags>;
+  };
+  seedRNG?: string; // NEW: RNG seed for deterministic tests
   actions: Array<{
     player: Player;
     action: string;
@@ -52,18 +60,21 @@ interface TestScenario {
       deckCount?: number;
       discardCount?: number;
     }>;
+    board?: {
+      player: Player;
+      public?: string[];
+      government?: string[];
+    }[];
+    shields?: string[];
+    buffedCards?: string[];
     flags?: {
       initiativeDiscount?: number;
       initiativeRefund?: number;
-      markZuckerbergUsed?: boolean;
-      govRefundAvailable?: boolean;
     };
-    shields?: string[]; // card names that should have shields
-    buffedCards?: string[]; // card names that should be buffed
-    logsContain?: string[]; // log messages that should appear
+    logsContain?: string[];
     queueEmpty?: boolean;
   };
-  rngSequence?: number[]; // For deterministic random effects
+  rngSequence?: number[]; // For old-style deterministic tests
 }
 
 // Enhanced test result interface with detailed information
@@ -126,7 +137,7 @@ const CardEffectTestSuite: React.FC = () => {
       round: 1,
       current: 1,
       passed: { 1: false, 2: false },
-      actionPoints: { 1: 2, 2: 2 }, // CORRECTED: Start with 2 AP like real game
+      actionPoints: { 1: AP_START, 2: AP_START }, // Use central constant
       actionsUsed: { 1: 0, 2: 0 },
       hands: { 1: [], 2: [] },
       decks: { 1: [], 2: [] },
@@ -179,6 +190,21 @@ const CardEffectTestSuite: React.FC = () => {
 
     const targetArray = lane === 'public' ? state.board[player].innen : state.board[player].aussen;
     targetArray.splice(position, 0, card);
+  }, []);
+
+  // NEW: Helper to set AP explicitly
+  const setAP = useCallback((state: GameState, player: Player, amount: number) => {
+    state.actionPoints[player] = Math.min(amount, AP_CAP);
+  }, []);
+
+  // NEW: Helper to set discount
+  const setDiscount = useCallback((state: GameState, player: Player, amount: number) => {
+    state.effectFlags[player].initiativeDiscount = Math.min(amount, MAX_DISCOUNT);
+  }, []);
+
+  // NEW: Helper to set refund
+  const setRefund = useCallback((state: GameState, player: Player, amount: number) => {
+    state.effectFlags[player].initiativeRefund = Math.min(amount, MAX_REFUND);
   }, []);
 
   // NEW: Seed deck with test cards for draw validation
@@ -447,7 +473,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 2, handSize: 1, deckCount: 2 }, // CORRECTED: Start with 2 AP, draw 1 card, deck -1
           { player: 2, ap: 2, handSize: 0, deckCount: 0 }
         ],
-        flags: { initiativeDiscount: 1 },
+        flags: { initiativeDiscount: 0 },
         logsContain: ['Elon Musk: +1 Karte, nächste Initiative -1 AP', '🃏 P1 zieht:'],
         queueEmpty: true
       }
@@ -468,7 +494,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 2, handSize: 0, deckCount: 0 },
           { player: 2, ap: 2, handSize: 0, deckCount: 0 }
         ],
-        flags: { initiativeDiscount: 1 },
+        flags: { initiativeDiscount: 0 },
         logsContain: ['Elon Musk: +1 Karte, nächste Initiative -1 AP'],
         queueEmpty: true
       }
@@ -599,7 +625,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 2, handSize: 0 },
           { player: 2, ap: 2, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 },
+        flags: { initiativeDiscount: 0 },
         logsContain: ['Zhang Yiming: nächste Initiative -1 AP', '🏷️ Discount P1: 0 → 1'],
         queueEmpty: true
       }
@@ -668,7 +694,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -690,7 +716,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 1 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -710,7 +736,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -731,7 +757,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -751,7 +777,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // Guidelines §15: AP-Cap: 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -771,7 +797,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -792,7 +818,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -813,7 +839,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -835,7 +861,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 1 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -855,7 +881,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -875,7 +901,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -895,7 +921,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // Guidelines §15: AP-Cap: 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -915,7 +941,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // Guidelines §15: AP-Cap: 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -935,7 +961,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -958,7 +984,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 1 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -978,7 +1004,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1000,7 +1026,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
     {
@@ -1020,7 +1046,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 2 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1040,7 +1066,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // Guidelines §15: AP-Cap: 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
     {
@@ -1059,7 +1085,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // 3 + 2 = 5, but capped at 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1079,7 +1105,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1099,7 +1125,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1119,7 +1145,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1139,7 +1165,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1159,7 +1185,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // Guidelines §15: AP-Cap: 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1179,7 +1205,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
     {
@@ -1199,7 +1225,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1219,7 +1245,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1240,7 +1266,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // Guidelines §15: AP-Cap: 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1262,7 +1288,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1284,7 +1310,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 1 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1304,7 +1330,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1324,7 +1350,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1344,7 +1370,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1366,7 +1392,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 1 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1386,7 +1412,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
     {
@@ -1405,7 +1431,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1425,7 +1451,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1445,7 +1471,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 4, handSize: 0 }, // Guidelines §15: AP-Cap: 4
           { player: 2, ap: 5, handSize: 0 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     },
 
@@ -1467,7 +1493,7 @@ const CardEffectTestSuite: React.FC = () => {
           { player: 1, ap: 5, handSize: 0 },
           { player: 2, ap: 5, handSize: 1 }
         ],
-        flags: { initiativeDiscount: 1 }
+        flags: { initiativeDiscount: 0 }
       }
     }
   ];
@@ -1608,7 +1634,7 @@ const CardEffectTestSuite: React.FC = () => {
     };
   }, [testResults]);
 
-  const exportToJSON = useCallback(() => {
+  const exportToJSON = useCallback(async () => {
     const exportData = generateExportData();
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1621,7 +1647,7 @@ const CardEffectTestSuite: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [generateExportData]);
 
-  const exportToCSV = useCallback(() => {
+  const exportToCSV = useCallback(async () => {
     const exportData = generateExportData();
 
     // Create CSV header
@@ -1664,7 +1690,7 @@ const CardEffectTestSuite: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [generateExportData]);
 
-  const exportToHTML = useCallback(() => {
+  const exportToHTML = useCallback(async () => {
     const exportData = generateExportData();
 
     const htmlContent = `

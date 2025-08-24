@@ -1,6 +1,6 @@
 import { GameState, Player, Card, EffectEvent } from '../types/game';
 import { resolveQueue } from '../utils/queue';
-import { getStrongestGovCardUid } from '../utils/effectUtils';
+import { getStrongestGovernmentUid } from '../utils/targets';
 
 function other(p: Player): Player { return p === 1 ? 2 : 1; }
 
@@ -119,7 +119,7 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
       break;
     }
     case 'Ursula von der Leyen': {
-      const uid = getStrongestGovCardUid(state, player);
+      const uid = getStrongestGovernmentUid(state, player);
       if (uid != null) {
         state._effectQueue.push({ type: 'GRANT_SHIELD', targetUid: uid });
       }
@@ -138,12 +138,12 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     }
     case 'Luiz Inácio Lula da Silva':
     case 'Luiz Inacio Lula da Silva': {
-      state._effectQueue.push({ type: 'ADJUST_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'BUFF_STRONGEST_GOV', player, amount: 1 });
       state._effectQueue.push({ type: 'LOG', msg: 'Luiz Inácio Lula da Silva: stärkste Regierung +1 Einfluss' });
       break;
     }
     case 'Volodymyr Zelenskyy': {
-      const uid = getStrongestGovCardUid(state, player);
+      const uid = getStrongestGovernmentUid(state, player);
       if (uid != null) {
         state._effectQueue.push({ type: 'GRANT_SHIELD', targetUid: uid });
       }
@@ -258,7 +258,7 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
       break;
     }
     case 'Spin Doctor': {
-      state._effectQueue.push({ type: 'ADJUST_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'BUFF_STRONGEST_GOV', player, amount: 1 });
       state._effectQueue.push({ type: 'LOG', msg: 'Spin Doctor: stärkste Regierung +1 Einfluss' });
       break;
     }

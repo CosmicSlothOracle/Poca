@@ -4,22 +4,20 @@ import { makePolInstance, makeSpecInstance } from './cardUtils';
 import { makeUid } from './id';
 import { getLaneCapacity } from '../ui/layout';
 
-// Re-export from specialized modules for backwards compatibility
+// Re-export helpers from effectUtils
+export { EffectQueueManager, ActiveAbilitiesManager, tryApplyNegativeEffect } from './effectUtils';
+
+// Re-export helpers from cardUtils
 export {
   makePolInstance,
   makeSpecInstance,
+  sortHandCards,
+  adjustInfluence,
+  findCardLocation,
   getAllowedLaneForCard,
   isLaneAllowedForCard,
-  adjustInfluence,
-  getCardActionPointCost,
-  findCardLocation,
-  sortHandCards
+  getCardActionPointCost
 } from './cardUtils';
-export {
-  EffectQueueManager,
-  ActiveAbilitiesManager,
-  tryApplyNegativeEffect
-} from './effectUtils';
 
 // Helper functions
 export function ceil(x: number): number {

@@ -270,7 +270,7 @@ export type EffectEvent =
   | { type: 'DEACTIVATE_CARD'; targetUid: number }                                // card.deactivated = true
   | { type: 'DEACTIVATE_RANDOM_HAND'; player: Player; amount: number }           // random hand cards → discard
   | { type: 'INITIATIVE_ACTIVATED'; player: Player }                             // löst Cluster-3 + Plattform aus
-  | { type: 'ADJUST_STRONGEST_GOV'; player: Player; amount: number };
+
 
 export function createEmptyBoardRow(): BoardRow {
   return { innen: [], aussen: [], sofort: [] };
