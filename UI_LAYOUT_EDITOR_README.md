@@ -146,3 +146,4 @@ Das Standard-Layout enthält alle wichtigen UI-Elemente des Mandate Games:
 
 - Prüfe JSON-Format auf Syntax-Fehler
 - Stelle sicher, dass alle erforderlichen Felder vorhanden sind
+

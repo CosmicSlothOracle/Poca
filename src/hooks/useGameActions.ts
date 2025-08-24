@@ -6,10 +6,12 @@ import { PRESET_DECKS } from '../data/gameData';
 import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard, isInitiativeCard, isGovernmentCard } from '../utils/ap';
 import { triggerCardEffects } from '../effects/cards';
 import { resolveQueue } from '../utils/queue';
-import { applyStartOfTurnHooks } from '../utils/startOfTurnHooks';
+import { applyStartOfTurnFlags } from '../utils/startOfTurnHooks';
 import { checkTrapsOnOpponentPlay, registerTrap, isSystemrelevant, grantOneTimeProtection, isBoycottTrap } from '../utils/traps';
-import { recomputeAuraFlags, applyInstantInitiativeInfluenceMods, maybeApplyAiWeiweiInstantBonus } from '../state/effects';
-import { isInstantInitiative } from '../utils/tags';
+import { recomputeAuraFlags } from '../state/effects';
+import { activateInstantInitiative as activateInstantInitiativeRuntime } from '../state/instantRuntime';
+import { isInstantInitiative } from '../utils/initiative';
+import { emptyBoard } from '../state/board';
 
 // Helper function for getting the other player
 const other = (p: Player): Player => (p === 1 ? 2 : 1) as Player;
@@ -142,17 +144,13 @@ function reallyEndTurn(gameState: GameState, log: (msg: string) => void): GameSt
   gameState.actionsUsed = { ...gameState.actionsUsed, [newCurrent]: 0 };
   gameState.passed = { ...gameState.passed, [newCurrent]: false };
 
-  // Apply new start-of-turn hooks
-          applyStartOfTurnHooks(gameState, newCurrent, log);
+            // Apply new start-of-turn hooks
+          applyStartOfTurnFlags(gameState, newCurrent, log);
 
         // 🔥 CLUSTER 3: Auren-Flags beim Zugstart neu berechnen
         recomputeAuraFlags(gameState);
 
-  // Reset turn-bezogener Flag-Nutzungen
-  const f = gameState.effectFlags?.[newCurrent];
-  if (f) {
-    f.platformRefundUsed = false;
-  }
+  // Reset turn-bezogener Flag-Nutzungen (handled in applyStartOfTurnFlags)
 
   log(`🔄 Zug-Ende: Spieler ${newCurrent} ist am Zug (2 AP verfügbar)`);
 
@@ -191,8 +189,8 @@ function resolveRound(gameState: GameState, log: (msg: string) => void): GameSta
     ...(gameState.permanentSlots[1].public ? [gameState.permanentSlots[1].public] : []),
     ...(gameState.permanentSlots[2].government ? [gameState.permanentSlots[2].government] : []),
     ...(gameState.permanentSlots[2].public ? [gameState.permanentSlots[2].public] : []),
-    ...(gameState.instantSlot[1] ? [gameState.instantSlot[1]] : []),
-    ...(gameState.instantSlot[2] ? [gameState.instantSlot[2]] : [])
+    ...gameState.board[1].sofort,
+    ...gameState.board[2].sofort
   ];
 
   // Draw 5 new cards for each player
@@ -233,32 +231,18 @@ function resolveRound(gameState: GameState, log: (msg: string) => void): GameSta
     actionPoints: { 1: 2, 2: 2 }, // Reset AP
     actionsUsed: { 1: 0, 2: 0 }, // Reset actions
     roundsWon: newRoundsWon,
-    // 🔥 CLUSTER 1: Reset passive effect flags for new round
     effectFlags: {
-      1: {
-        ...createDefaultEffectFlags(),
-        freeInitiativeAvailable: true,
-        govRefundAvailable: false,
-        markZuckerbergUsed: false, // Reset Mark Zuckerberg flag
-      },
-      2: {
-        ...createDefaultEffectFlags(),
-        freeInitiativeAvailable: true,
-        govRefundAvailable: false,
-        markZuckerbergUsed: false, // Reset Mark Zuckerberg flag
-      }
+      1: createDefaultEffectFlags(),
+      2: createDefaultEffectFlags()
     },
     // Clear all board positions
-    board: {
-      1: { innen: [], aussen: [] },
-      2: { innen: [], aussen: [] }
-    },
-    // Clear permanent and instant slots
+    board: emptyBoard(),
+    // Clear permanent slots
     permanentSlots: {
       1: { government: null, public: null },
       2: { government: null, public: null }
     },
-    instantSlot: { 1: null, 2: null },
+    // instantSlot wird nicht mehr verwendet - Sofort-Initiativen gehen in board[player].sofort
     // New hands with 5 cards each
     hands: {
       1: newP1Hand,
@@ -312,26 +296,18 @@ export function useGameActions(
       passed: { 1: false, 2: false },
       decks: { 1: d1, 2: d2 },
       hands: { 1: h1, 2: h2 },
-      board: { 1: { innen: [], aussen: [] }, 2: { innen: [], aussen: [] } },
+      board: { 1: { innen: [], aussen: [], sofort: [] }, 2: { innen: [], aussen: [], sofort: [] } },
       traps: { 1: [], 2: [] },
       permanentSlots: {
         1: { government: null, public: null },
         2: { government: null, public: null },
       },
-      instantSlot: { 1: null, 2: null },
+      // instantSlot wird nicht mehr verwendet - Sofort-Initiativen gehen in board[player].sofort
       discard: [],
       shields: new Set(), // Set<UID>
       effectFlags: {
-        1: {
-          ...createDefaultEffectFlags(),
-          freeInitiativeAvailable: true,
-          govRefundAvailable: false,      // ✅ Start: kein Refund aktiv
-        },
-        2: {
-          ...createDefaultEffectFlags(),
-          freeInitiativeAvailable: true,
-          govRefundAvailable: false,      // ✅ Start: kein Refund aktiv
-        }
+        1: createDefaultEffectFlags(),
+        2: createDefaultEffectFlags()
       },
       log: [
         `Match gestartet. P1 und P2 erhalten je ${h1.length}/${h2.length} Startkarten.`,
@@ -378,40 +354,45 @@ export function useGameActions(
         log(`💻 Plattform-Karten in Hand P${player}: ${platformCards.map(c => c.name).join(', ')}`);
       }
 
-      // PATCH C: Beim Ausspielen NETTO verbuchen & Flags verbrauchen
       const selectedCard = hand[handIndex];
       if (!canPlayCard(prev, player, selectedCard)) {
         log('🚫 Kann Karte nicht spielen (Aktionslimit & nicht 0-AP).');
         return prev;
       }
 
-      const { net } = getNetApCost(prev, player, selectedCard);
+      const { cost, refund, net } = getNetApCost(prev, player, selectedCard);
+      const prevAp = prev.actionPoints[player];
+      const prevAct = prev.actionsUsed[player] ?? 0;
 
-      // AP NETTO abziehen
       const newState = { ...prev };
-      newState.actionPoints[player] = Math.max(0, prev.actionPoints[player] - net);
 
-      // Aktionen nur bei net>0 erhöhen
+      // AP abbuchen & refund gutschreiben
+      newState.actionPoints[player] = Math.max(0, newState.actionPoints[player] - cost);
+      newState.actionPoints[player] = Math.min(4, newState.actionPoints[player] + refund);
+
+      // Action-Zähler: nur wenn net > 0
       if (net > 0) {
-        newState.actionsUsed[player] = (prev.actionsUsed[player] ?? 0) + 1;
+        newState.actionsUsed[player] += 1;
+        log(`💳 Kosten verbucht: AP ${prevAp}→${newState.actionPoints[player]} | Aktionen ${prevAct}→${newState.actionsUsed[player]}`);
       } else {
-        log('🆓 Netto-0-Zug: keine Aktion verbraucht.');
+        log(`🆓 Netto-0-Zug: −${cost} AP (+${refund} Refund) → keine Aktion verbraucht.`);
       }
 
-      // 🔧 Flags sicher initialisieren
+      // Flags KONSUMIEREN (einheitlich, NUR HIER!)
       ensureFlags(newState, player);
+      const ef = newState.effectFlags[player];
 
-      // Consume single-use flags
-      if (isGovernmentCard(selectedCard) && newState.effectFlags[player].govRefundAvailable) {
-        newState.effectFlags[player].govRefundAvailable = false;
+      // Regierung: Refund einmalig pro Zug
+      if (selectedCard.kind === 'pol' && ef.govRefundAvailable) {
+        ef.govRefundAvailable = false;
       }
 
-      if (isInitiativeCard(selectedCard) && (newState.effectFlags[player].nextInitiativeRefund ?? 0) > 0) {
-        newState.effectFlags[player].nextInitiativeRefund!--;
+      // Initiative: pro Karte je 1 Refund & 1 Discount abbauen, falls vorhanden
+      const isInstant = (selectedCard.kind === 'spec' && /Sofort-?Initiative/i.test((selectedCard as any).type ?? ''));
+      if (isInstant) {
+        if (ef.initiativeRefund > 0) ef.initiativeRefund -= 1;
+        if (ef.initiativeDiscount > 0) ef.initiativeDiscount -= 1;
       }
-
-      // 🔧 Flags sicher initialisieren
-      ensureFlags(newState, player);
 
       // Remove card from hand
       const newHand = [...newState.hands[player]];
@@ -447,46 +428,22 @@ export function useGameActions(
         log(`🃏 Player ${player}: ${playedCard.name} gespielt in ${targetLane === 'aussen' ? 'Regierung' : 'Öffentlichkeit'}`);
 
         // 3) Nachdem die Karte gelegt wurde: gegnerische Traps prüfen
-        checkTrapsOnOpponentPlay(newState, player, playedCard, log);
+        const tag = (playedCard as any).tag ?? '';
+        const isNGOorPlatform = ['NGO', 'Plattform'].includes(tag);
+        checkTrapsOnOpponentPlay(newState, player === 1 ? 2 : 1, playedCard.uid, isNGOorPlatform, log);
 
-        // 🎓 Think-tank / generischer Bonus konsumieren
-        ensureFlags(newState, player);
-        const pf = (newState.effectFlags as any)[player];
-        if (pf.nextGovPlus2) {
-          const laneRef = newState.board[player][targetLane] as any[];
-          const justPlaced = laneRef[laneRef.length - 1];
-          if (justPlaced && justPlaced.kind === 'pol') {
-            if (justPlaced.baseInfluence == null) {
-              // baseInfluence einfrieren (falls noch nicht gesetzt)
-              justPlaced.baseInfluence = justPlaced.influence ?? 0;
-            }
-            justPlaced.baseInfluence += 2;        // dauerhaft
-            justPlaced.influence = justPlaced.baseInfluence; // auf neue Basis setzen
-            pf.nextGovPlus2 = false;
-            log(`🧠 Think-tank: ${justPlaced.name} erhält dauerhaft +2 I-Basis (jetzt ${justPlaced.influence}).`);
-          }
-        }
-        const govBonus = newState.effectFlags[player]?.nextGovernmentCardBonus ?? 0;
-        if (govBonus > 0) {
-          const laneRef = newState.board[player][targetLane] as any[];
-          const justPlaced = laneRef[laneRef.length - 1];
-          if (justPlaced && justPlaced.kind === 'pol') {
-            if (justPlaced.baseInfluence == null) {
-              justPlaced.baseInfluence = justPlaced.influence ?? 0;
-            }
-            justPlaced.baseInfluence += govBonus;
-            justPlaced.influence = justPlaced.baseInfluence;
-            newState.effectFlags[player].nextGovernmentCardBonus = 0;
-            log(`🎓 Government-Bonus: ${justPlaced.name} erhält +${govBonus} Einfluss (einmalig).`);
-          }
-        }
+
 
         // 👉 Erst JETZT Auren anwenden (damit +2 Basis erhalten bleibt)
         applyAurasForPlayer(newState, player, log);
 
         // 6) Karteneffekte enqueuen + Queue auflösen
-        triggerCardEffects(newState, player, playedCard, targetLane);
-        resolveQueue(newState, log);
+        triggerCardEffects(newState, player, playedCard);
+        // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
 
         // 🔥 ROMAN ABRAMOVICH EFFEKT: Wenn Regierungskarte mit Einfluss ≤5 gespielt wird
         if (playedCard.kind === 'pol' && (playedCard as any).influence <= 5) {
@@ -508,31 +465,11 @@ export function useGameActions(
           }
         }
 
-        // 🔄 Refund-Verbrauch NUR beim tatsächlichen Spielen
-
-        // 1) Initiative: Refund-Becken teilweise/ganz abbauen
-        if (isInitiativeCard(playedCard)) {
-          const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
-          if (poolBefore > 0) {
-            const consumed = Math.min(1, poolBefore); // verbrauche bis zur Höhe der (rabattierten) Kosten
-            newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
-            if (consumed > 0) {
-              log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
-            }
-          }
-        }
 
 
 
-        // *** Karten-Soforteffekte (Beispiel Bill Gates -> Plattform-Refund für nächste Initiative) ***
-        try {
-          const name = (playedCard as any).name ?? '';
-          if (name === 'Bill Gates') {
-            const before = newState.effectFlags[player].nextInitiativeRefund ?? 0;
-            newState.effectFlags[player].nextInitiativeRefund = before + 1;
-            log(`🎟️ Bill Gates: nächste Initiative +1 AP Refund (Becken: ${before}→${newState.effectFlags[player].nextInitiativeRefund}).`);
-          }
-        } catch {}
+
+
 
         // 🔍 BOARD DEBUG: Zeige aktuelles Board nach dem Spielen
         const currentBoard = newState.board[player];
@@ -588,17 +525,13 @@ export function useGameActions(
 
           // 6) Karteneffekte enqueuen + Queue auflösen
           triggerCardEffects(newState, player, playedCard);
-          resolveQueue(newState, log);
+          // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
 
-          // 🔄 Refund-Verbrauch für Dauerhaft-Initiative
-          const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
-          if (poolBefore > 0) {
-            const consumed = Math.min(1, poolBefore);
-            newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
-            if (consumed > 0) {
-              log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
-            }
-          }
+
           return newState;
         }
 
@@ -610,11 +543,11 @@ export function useGameActions(
             log(`🧩 INIT: ${specCard.name} [${String(specCard.effectKey)}] gespielt`);
           }
 
-          // 🔧 NEU: Sofort-Initiativen werden in den instantSlot gelegt statt sofort aktiviert
+          // 🔧 NEU: Sofort-Initiativen werden in das sofort Array gelegt statt sofort aktiviert
           if (typeStr.includes('sofort')) {
             // Prüfe ob bereits eine Sofort-Initiative im Slot liegt
-            if (newState.instantSlot[player] !== null) {
-              log(`❌ ERROR: Sofort-Initiative-Slot bereits besetzt - ${newState.instantSlot[player]?.name} muss erst aktiviert werden`);
+            if (newState.board[player].sofort.length > 0) {
+              log(`❌ ERROR: Sofort-Initiative-Slot bereits besetzt - ${newState.board[player].sofort[0]?.name} muss erst aktiviert werden`);
               // Karte zurück in die Hand
               newState.hands[player] = [...newState.hands[player], playedCard];
               // AP zurückgeben
@@ -626,25 +559,13 @@ export function useGameActions(
               return newState;
             }
 
-            // Sofort-Initiative in den instantSlot legen
-            newState.instantSlot[player] = playedCard;
+            // Sofort-Initiative in das sofort Array legen
+            newState.board[player].sofort = [playedCard];
             log(`🎯 P${player} legt ${playedCard.name} in Sofort-Initiative-Slot (kann später aktiviert werden)`);
 
-            // 🔥 CLUSTER 3: Auren-Flags neu berechnen (nach Kartenspielen)
-            recomputeAuraFlags(newState);
-
-            // 🔥 CLUSTER 3: Ai Weiwei Bonus bei Sofort-Initiative
-            maybeApplyAiWeiweiInstantBonus(newState, player, playedCard, log);
-
-            // 🔄 Refund-Verbrauch für Sofort-Initiative (beim Legen)
-            const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
-            if (poolBefore > 0) {
-              const consumed = Math.min(1, poolBefore);
-              newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
-              if (consumed > 0) {
-                log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
-              }
-            }
+            // Sofort-Initiativen: auf Board.sofort legen (nicht direkt entsorgen)
+            if (!newState._queue) newState._queue = [];
+            newState._queue.push({ type: 'LOG', msg: `🔔 Sofort-Initiative bereit: ${playedCard.name} (zum Aktivieren anklicken oder Taste 'A')` });
             return newState;
           }
 
@@ -655,13 +576,16 @@ export function useGameActions(
 
           // 6) Karteneffekte enqueuen + Queue auflösen
           triggerCardEffects(newState, player, playedCard);
-          resolveQueue(newState, log);
+          // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
 
           // 🔥 CLUSTER 3: Auren-Flags neu berechnen (nach Kartenspielen)
           recomputeAuraFlags(newState);
 
-          // 🔥 CLUSTER 3: Ai Weiwei Bonus bei Dauerhaft-Initiative
-          maybeApplyAiWeiweiInstantBonus(newState, player, playedCard, log);
+          // 🔥 CLUSTER 3: Ai Weiwei Bonus wird bei Aktivierung angewendet (nicht beim Spielen)
 
           // 🔥 PASSIVE EFFEKTE NACH INITIATIVE: Mark Zuckerberg & Sam Altman
 
@@ -693,15 +617,7 @@ export function useGameActions(
             log(`🔥 SAM ALTMAN EFFEKT: +1 AP zurück (${newState.actionPoints[player] - 1} → ${newState.actionPoints[player]}) - KI-Initiative`);
           }
 
-          // 🔄 Refund-Verbrauch für Instant-Initiative
-          const poolBefore = newState.effectFlags[player]?.nextInitiativeRefund ?? 0;
-          if (poolBefore > 0) {
-            const consumed = Math.min(1, poolBefore);
-            newState.effectFlags[player].nextInitiativeRefund = Math.max(0, poolBefore - consumed);
-            if (consumed > 0) {
-              log(`🎟️ Initiative-Refund verbraucht: −${consumed} aus Becken (verblieben: ${newState.effectFlags[player].nextInitiativeRefund}).`);
-            }
-          }
+
           return newState;
         }
 
@@ -722,11 +638,17 @@ export function useGameActions(
             applyAurasForPlayer(newState, player, log);
 
             // 6) Karteneffekte enqueuen + Queue auflösen
-            triggerCardEffects(newState, player, playedCard, 'innen');
-            resolveQueue(newState, log);
+            triggerCardEffects(newState, player, playedCard);
+            // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
 
             // 3) Nachdem die Karte gelegt wurde: gegnerische Traps prüfen
-            checkTrapsOnOpponentPlay(newState, player, playedCard, log);
+            const tag = (playedCard as any).tag ?? '';
+            const isNGOorPlatform = ['NGO', 'Plattform'].includes(tag);
+            checkTrapsOnOpponentPlay(newState, player === 1 ? 2 : 1, playedCard.uid, isNGOorPlatform, log);
 
             // 🔥 PUBLIC CARD EFFECTS - Passive effects when played
 
@@ -833,7 +755,11 @@ export function useGameActions(
 
         // 6) Karteneffekte enqueuen + Queue auflösen
         triggerCardEffects(newState, player, playedCard);
-        resolveQueue(newState, log);
+        // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
 
         // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
         applyApRefundsAfterPlay(newState, player, selectedCard);
@@ -842,7 +768,11 @@ export function useGameActions(
 
       // 6) Karteneffekte enqueuen + Queue auflösen (fallback für unbekannte Kartentypen)
       triggerCardEffects(newState, player, selectedCard);
-      resolveQueue(newState, log);
+      // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
 
       // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
       applyApRefundsAfterPlay(newState, player, selectedCard);
@@ -868,7 +798,7 @@ export function useGameActions(
           newState.actionsUsed = { ...newState.actionsUsed, [newCurrent]: 0 };
 
           // Apply new start-of-turn hooks
-          applyStartOfTurnHooks(newState, newCurrent, log);
+          applyStartOfTurnFlags(newState, newCurrent, log);
 
         // 🔥 CLUSTER 3: Auren-Flags beim Zugstart neu berechnen
         recomputeAuraFlags(newState);
@@ -877,29 +807,7 @@ export function useGameActions(
         }
       }
 
-      // POST-PLAY: Rabatt-Verbrauch & Plattform-Refund (falls vorhanden)
-      {
-        const f = newState.effectFlags[player];
-        const kind = (selectedCard as any)?.kind ?? '';
-        const typeStr = (selectedCard as any)?.type ?? '';
-        const isInitiative = kind === 'spec' && /initiative/i.test(typeStr);
 
-        if (isInitiative && f?.nextInitiativeDiscounted) {
-          f.nextInitiativeDiscounted = false;
-          log('🎟️ Rabatt verbraucht: "nächste Initiative -1 AP" deaktiviert.');
-        }
-        if (isInitiative && f?.platformRefundAvailable && !f.platformRefundUsed) {
-          const ap0 = newState.actionPoints[player] ?? 0;
-          newState.actionPoints[player] = Math.min(4, ap0 + 1);
-          f.platformRefundUsed = true;
-          log(`♻️ Plattform-Refund: +1 AP (${ap0}→${newState.actionPoints[player]}) — 1x pro Zug.`);
-        }
-
-        // ✅ Greta-Refund nur einmal pro Zug
-        if (isGovernmentCard(selectedCard) && newState.effectFlags?.[player]?.govRefundAvailable) {
-          newState.effectFlags[player].govRefundAvailable = false;
-        }
-      }
 
       return newState;
     });
@@ -912,7 +820,7 @@ export function useGameActions(
         return prev;
       }
 
-      const instantCard = prev.instantSlot[player];
+      const instantCard = prev.board[player].sofort[0];
       if (!instantCard) {
         log(`❌ ERROR: No Sofort-Initiative in slot for player ${player}`);
         return prev;
@@ -920,30 +828,19 @@ export function useGameActions(
 
       const newState = { ...prev };
 
-      // Sofort-Initiative aktivieren
-      log(`🎯 P${player} aktiviert ${instantCard.name} aus dem Sofort-Initiative-Slot`);
-
-      // 🔥 CLUSTER 3: Einfluss-Modifikationen für Sofort-Initiative berechnen
-      if (isInstantInitiative(instantCard)) {
-        const baseInfluence = (instantCard as any).influence ?? 0;
-        const mod = applyInstantInitiativeInfluenceMods(newState, player, baseInfluence, instantCard);
-        if (mod.reasons.length > 0) {
-          log(`⚙️ Sofort-Initiative Mods: ${mod.reasons.join(' | ')}`);
-        }
-        // TODO: Falls der modifizierte Einfluss weiterverwendet wird, nutze mod.influence
-      }
-
-      // 6) Karteneffekte enqueuen + Queue auflösen
+      // 1) Normale Karten-Effekte der Sofort-Karte feuern
       triggerCardEffects(newState, player, instantCard);
-      resolveQueue(newState, log);
 
+      // 2) Karte nach Aktivierung in den Ablagestapel
+      const [played] = newState.board[player].sofort.splice(0, 1);
+      newState.discard.push(played);
 
-
-      // Karte auf den Ablagestapel legen
-      newState.discard = [...newState.discard, instantCard];
-      newState.instantSlot[player] = null;
-
-      log(`✅ ${instantCard.name} wurde aktiviert und auf den Ablagestapel gelegt`);
+      // 3) Queue auflösen
+      // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
 
       return newState;
     });
@@ -965,7 +862,11 @@ export function useGameActions(
       // 2) Hängen noch Effekte in der Queue? -> Auflösen lassen
       if (newState._effectQueue && newState._effectQueue.length > 0) {
         log('⏳ Effekte werden noch aufgelöst – Zugwechsel folgt automatisch.');
-        resolveQueue(newState, log);
+        // Queue needs array of events
+        if (newState._queue && newState._queue.length > 0) {
+          resolveQueue(newState, newState._queue);
+          newState._queue = [];
+        }
         // Nach Queue-Auflösung: Wenn Flag noch gesetzt, Zug beenden
         if (newState.isEndingTurn) {
           return reallyEndTurn(newState, log);
@@ -1021,7 +922,7 @@ export function useGameActions(
           newState.actionsUsed = { ...newState.actionsUsed, [otherPlayer]: 0 };
 
           // Apply new start-of-turn hooks
-          applyStartOfTurnHooks(newState, otherPlayer, log);
+          applyStartOfTurnFlags(newState, otherPlayer, log);
 
         // 🔥 CLUSTER 3: Auren-Flags beim Zugstart neu berechnen
         recomputeAuraFlags(newState);

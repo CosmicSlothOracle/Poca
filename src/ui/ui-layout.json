@@ -1,0 +1,79 @@
+{
+  "version": 4,
+  "canvas": { "width": 1920, "height": 1080, "aspect": "16:9" },
+  "scaling": { "mode": "fit", "letterbox": true },
+  "zones": [
+    {
+      "id": "row.government.player",
+      "rectPx": [288, 546, 1344, 256],
+      "layout": { "type": "fixedSlots", "slots": 5, "slotSize": [256, 256], "gap": 16, "alignment": "center" },
+      "z": 10
+    },
+    {
+      "id": "row.public.player",
+      "rectPx": [560, 806, 800, 256],
+      "layout": { "type": "fixedSlots", "slots": 3, "slotSize": [256, 256], "gap": 16, "alignment": "center" },
+      "z": 11
+    },
+    {
+      "id": "slot.permanent.government.player",
+      "rectPx": [1184, 546, 256, 256],
+      "layout": { "type": "singleSlot", "slotSize": [256, 256] },
+      "z": 12
+    },
+    {
+      "id": "slot.permanent.public.player",
+      "rectPx": [480, 546, 256, 256],
+      "layout": { "type": "singleSlot", "slotSize": [256, 256] },
+      "z": 13
+    },
+    {
+      "id": "slot.instant.player",
+      "rectPx": [24, 24, 256, 256],
+      "layout": { "type": "singleSlot", "slotSize": [256, 256] },
+      "z": 14
+    },
+    {
+      "id": "hand.player",
+      "rectPx": [0, 0, 256, 1080],
+      "layout": { "type": "fixedSlots", "slots": 4, "slotSize": [256, 256], "gap": 8, "alignment": "left", "direction": "vertical" },
+      "z": 15
+    },
+    {
+      "id": "row.public.opponent",
+      "rectPx": [560, 24, 800, 256],
+      "layout": { "type": "fixedSlots", "slots": 3, "slotSize": [256, 256], "gap": 16, "alignment": "center" },
+      "z": 20
+    },
+    {
+      "id": "row.government.opponent",
+      "rectPx": [288, 284, 1344, 256],
+      "layout": { "type": "fixedSlots", "slots": 5, "slotSize": [256, 256], "gap": 16, "alignment": "center" },
+      "z": 21
+    },
+    {
+      "id": "slot.permanent.public.opponent",
+      "rectPx": [1184, 24, 256, 256],
+      "layout": { "type": "singleSlot", "slotSize": [256, 256] },
+      "z": 22
+    },
+    {
+      "id": "slot.permanent.government.opponent",
+      "rectPx": [480, 24, 256, 256],
+      "layout": { "type": "singleSlot", "slotSize": [256, 256] },
+      "z": 23
+    },
+    {
+      "id": "slot.instant.opponent",
+      "rectPx": [1640, 800, 256, 256],
+      "layout": { "type": "singleSlot", "slotSize": [256, 256] },
+      "z": 24
+    },
+    {
+      "id": "hand.opponent",
+      "rectPx": [1664, 0, 256, 1080],
+      "layout": { "type": "fixedSlots", "slots": 4, "slotSize": [256, 256], "gap": 8, "alignment": "right", "direction": "vertical-reverse" },
+      "z": 25
+    }
+  ]
+}

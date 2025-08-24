@@ -21,12 +21,12 @@ const createMockState = (): GameState => ({
       aussen: [{
         id: 200, key: 'test_pol', name: 'Test Politician', kind: 'pol', baseId: 200, uid: 200,
         influence: 5
-      } as any]
+      } as any],
+      sofort: []
     },
-    2: { innen: [], aussen: [] }
+    2: { innen: [], aussen: [], sofort: [] }
   },
   permanentSlots: { 1: { government: null, public: null }, 2: { government: null, public: null } },
-  instantSlot: { 1: null, 2: null },
   discard: [],
   log: [],
   activeRefresh: { 1: 0, 2: 0 },

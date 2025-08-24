@@ -15,6 +15,10 @@ export function isInstantInitiative(card: Card): boolean {
   const k = card as any;
   const typeStr = String(k.type || '').toLowerCase();
 
-  // Explizite Erkennung: muss "initiative" UND "sofort" enthalten
-  return typeStr.includes('initiative') && typeStr.includes('sofort');
+  // treat anything with "sofort" as instant-initiative
+  return typeStr.includes('sofort') || typeStr.includes('instant');
+}
+
+export function cap(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
 }

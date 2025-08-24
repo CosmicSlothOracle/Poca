@@ -4,41 +4,31 @@ import { isInstantInitiative } from '../utils/tags';
 // Helper: Spieler wechseln
 const other = (p: Player): Player => (p === 1 ? 2 : 1) as Player;
 
-/**
- * Berechnet die Auren-Flags basierend auf Karten in der Öffentlichkeit
- * Wird beim Zugstart und nach jedem Kartenspielen aufgerufen
- */
-export function recomputeAuraFlags(state: GameState): void {
-  // Reset aller Flags zuerst
+export function recomputeAuraFlags(state: GameState) {
   for (const p of [1, 2] as const) {
     const f = state.effectFlags[p];
-    f.scienceInitiativeBonus = false;    // Doudna
-    f.healthInitiativeBonus = false;     // Fauci
-    f.cultureInitiativeBonus = false;    // Ai Weiwei (Gate für Karten/AP)
-    f.militaryInitiativePenalty = false; // Chomsky (beim Gegner)
-    f.govRefundAvailable = false;        // Bewegung → Refund
+    f.scienceInitiativeBonus    = false; // Jennifer Doudna: +1 influence on instant initiatives
+    f.healthInitiativeBonus     = false; // Anthony Fauci: +1 influence on instant initiatives
+    f.cultureInitiativeBonus    = false; // Ai Weiwei: +1 card +1 AP on instant initiatives
+    f.militaryInitiativePenalty = false; // Noam Chomsky: -1 influence on opponent instant initiatives
+    // Movement refund is per turn; leave whatever your start-of-turn sets
+    // f.govRefundAvailable is managed at turn start
   }
 
-  // Berechne Flags basierend auf Öffentlichkeitskarten
   for (const p of [1, 2] as const) {
     const pub = state.board[p].innen;
 
-    if (pub.some(c => (c as any).name === 'Jennifer Doudna' && !(c as any).deactivated))
-      state.effectFlags[p].scienceInitiativeBonus = true;
+    const has = (name: string) =>
+      pub.some(c => (c as any).name === name && !(c as any).deactivated);
 
-    if (pub.some(c => (c as any).name === 'Anthony Fauci' && !(c as any).deactivated))
-      state.effectFlags[p].healthInitiativeBonus = true;
+    if (has('Jennifer Doudna')) state.effectFlags[p].scienceInitiativeBonus = true;
+    if (has('Anthony Fauci'))   state.effectFlags[p].healthInitiativeBonus  = true;
+    if (has('Ai Weiwei'))       state.effectFlags[p].cultureInitiativeBonus = true;
+    if (has('Noam Chomsky'))    state.effectFlags[p === 1 ? 2 : 1].militaryInitiativePenalty = true;
 
-    if (pub.some(c => (c as any).name === 'Ai Weiwei' && !(c as any).deactivated))
-      state.effectFlags[p].cultureInitiativeBonus = true;
-
-    if (pub.some(c => (c as any).name === 'Noam Chomsky' && !(c as any).deactivated))
-      state.effectFlags[p === 1 ? 2 : 1].militaryInitiativePenalty = true;
-
-    // Bewegung (Greta, Malala, Navalny, Ai Weiwei als Aktivist etc.)
     if (pub.some(c => ['Greta Thunberg','Malala Yousafzai','Ai Weiwei','Alexei Navalny']
-          .includes((c as any).name) && !(c as any).deactivated)) {
-      state.effectFlags[p].govRefundAvailable = true;
+        .includes((c as any).name) && !(c as any).deactivated)) {
+      state.effectFlags[p].govRefundAvailable = true; // movement → first gov card refund
     }
   }
 }

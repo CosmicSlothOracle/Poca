@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { GameState, Card, PoliticianCard, Player, Lane } from '../types/game';
-import layoutDef from '../ui/ui_layout_1920x1080.json';
+import { LAYOUT, getZone, computeSlotRects, getUiTransform, getLaneCapacity, getPublicRects, getGovernmentRects, getSofortRect } from '../ui/layout';
 import { drawCardImage, sortHandCards } from '../utils/gameUtils';
 import { getNetApCost } from '../utils/ap';
 
@@ -12,7 +12,7 @@ interface GameCanvasProps {
   devMode?: boolean; // 🔧 DEV MODE: Show P2 hand when true
 }
 
-const UI_BASE = { width: 1920, height: 1080 };
+
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
   gameState,
@@ -23,28 +23,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const clickZonesRef = useRef<Array<{ x: number; y: number; w: number; h: number; data: any }>>([]);
+  const backgroundImageRef = useRef<HTMLImageElement | null>(null);
 
-  type Zone = (typeof layoutDef)['zones'][number];
-  const ZONES: Record<string, Zone> = (layoutDef.zones as Zone[]).reduce((acc, z) => {
-    acc[z.id] = z;
-    return acc;
-  }, {} as Record<string, Zone>);
 
-  const getUiTransform = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { scale: 1, offX: 0, offY: 0 };
-
-    const scale = Math.min(canvas.width / UI_BASE.width, canvas.height / UI_BASE.height);
-    const offX = Math.floor((canvas.width - UI_BASE.width * scale) / 2);
-    const offY = Math.floor((canvas.height - UI_BASE.height * scale) / 2);
-    // expose for debug
-    (window as any).__politicardDebug = {
-      ...(window as any).__politicardDebug,
-      uiTransform: { scale, offX, offY },
-      canvasSize: { width: canvas.width, height: canvas.height }
-    };
-    return { scale, offX, offY };
-  }, []);
 
   const drawCardAt = useCallback((
     ctx: CanvasRenderingContext2D,
@@ -63,7 +44,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       dy = y - Math.floor((s - size) / 2);
     }
 
-            drawCardImage(ctx, card, dx, dy, s, 'ui');
+    drawCardImage(ctx, card, dx, dy, s, 'ui');
 
     // Status-Indikatoren (für alle Board-Karten)
     // Einfluss-Wert unten links – nur für Politiker
@@ -129,50 +110,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.strokeRect(dx + 1, dy + 1, s - 2, s - 2);
       ctx.lineWidth = 1;
     }
+
+    // Return exact 256x256 click zone over the card
+    // Since all cards are 256x256, the click zone should match exactly
+    return { x: dx, y: dy, w: 256, h: 256 };
   }, [gameState]);
 
-  const computeFixedSlots = useCallback((zoneId: string): Array<{ x: number; y: number; w: number; h: number }> => {
-    const z = ZONES[zoneId];
-    if (!z || (z.layout as any).type !== 'fixedSlots') return [];
-    const rect = z.rectPx as [number, number, number, number];
-    const [zx, zy, zw, zh] = rect;
-    const layout = z.layout as { type: 'fixedSlots'; slots: number; slotSize: [number, number]; gap: number; alignment: 'center' | 'start' | 'end' };
-    const count = layout.slots;
-    const [slotW, slotH] = layout.slotSize;
-    const gap = layout.gap;
-    const totalWidth = count * slotW + (count - 1) * gap;
-    let startX = zx;
-    if (layout.alignment === 'center') startX = zx + Math.max(0, Math.floor((zw - totalWidth) / 2));
-    if (layout.alignment === 'end') startX = zx + Math.max(0, zw - totalWidth);
-    const y = zy + Math.floor((zh - slotH) / 2);
-    const slots: Array<{ x: number; y: number; w: number; h: number }> = [];
-    for (let i = 0; i < count; i++) {
-      const x = startX + i * (slotW + gap);
-      slots.push({ x, y, w: slotW, h: slotH });
-    }
-    return slots;
-  }, [ZONES]);
 
 
 
-  const computeStripSlots = useCallback((zoneId: string, count: number): Array<{ x: number; y: number; w: number; h: number }> => {
-    const z = ZONES[zoneId];
-    if (!z || (z.layout as any).type !== 'strip') return [];
-    const rect = z.rectPx as [number, number, number, number];
-    const [zx, zy, zw, zh] = rect;
-    const layout = z.layout as { type: 'strip'; cardSize: [number, number]; max: number; gap: number };
-    const [cardW, cardH] = layout.cardSize;
-    const n = Math.min(count, layout.max);
-    const totalWidth = n * cardW + (n - 1) * layout.gap;
-    const startX = zx + Math.max(0, Math.floor((zw - totalWidth) / 2));
-    const y = zy + Math.floor((zh - cardH) / 2);
-    const slots: Array<{ x: number; y: number; w: number; h: number }> = [];
-    for (let i = 0; i < n; i++) {
-      const x = startX + i * (cardW + layout.gap);
-      slots.push({ x, y, w: cardW, h: cardH });
-    }
-    return slots;
-  }, [ZONES]);
+
+
 
   // Slot-Benennungs-Funktion basierend auf Glossar
   const getSlotDisplayName = useCallback((zoneId: string, index: number, player: Player): string => {
@@ -224,7 +172,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     lane: Lane,
     clickable: boolean
   ) => {
-    const slots = computeFixedSlots(zoneId);
+    const zone = getZone(zoneId);
+    if (!zone) return;
+
+    const slots = computeSlotRects(zone);
     const arr = gameState.board[player][lane];
 
     slots.forEach((s, idx) => {
@@ -247,7 +198,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       if (card) {
         const isSelected = player === 1 && selectedHandIndex !== null && gameState.hands[1][selectedHandIndex] === card;
-        drawCardAt(ctx, card, s.x, s.y, s.w, isSelected, false);
+        const clickZone = drawCardAt(ctx, card, s.x, s.y, s.w, isSelected, false);
 
         // Kartenname unter dem Slot anzeigen
         ctx.fillStyle = 'rgba(255,255,255,0.9)';
@@ -257,7 +208,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.fillText(card.name, s.x + s.w/2, textY);
 
         clickZonesRef.current.push({
-          x: s.x, y: s.y, w: s.w, h: s.h,
+          ...clickZone,
           data: { type: 'board_card', player, lane, index: idx, card }
         });
       } else if (clickable && gameState.current === player) {
@@ -275,81 +226,111 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
       }
     });
-  }, [gameState, selectedHandIndex, drawCardAt, computeFixedSlots, getSlotDisplayName]);
+  }, [gameState, selectedHandIndex, drawCardAt, getSlotDisplayName]);
 
   const drawHandP1 = useCallback((ctx: CanvasRenderingContext2D) => {
     const hand = sortHandCards(gameState.hands[1]);
-    const slots = computeFixedSlots('hand.player');
-    slots.forEach((s, i) => {
+    const zone = getZone('hand.player');
+    if (!zone) return;
+
+    const slots = computeSlotRects(zone);
+    slots.forEach((s: { x: number; y: number; w: number; h: number }, i: number) => {
       const card = hand[i];
       if (!card) return;
       // Find original index in unsorted hand for click handling
       const originalIndex = gameState.hands[1].findIndex(c => c.uid === card.uid);
       const isSel = selectedHandIndex === originalIndex;
-      drawCardAt(ctx, card, s.x, s.y, s.w, isSel, true, 1); // Show AP cost for player 1 hand
-      clickZonesRef.current.push({ x: s.x, y: s.y, w: s.w, h: s.h, data: { type: 'hand_p1', index: originalIndex, card } });
+      const clickZone = drawCardAt(ctx, card, s.x, s.y, s.w, isSel, true, 1); // Show AP cost for player 1 hand
+      clickZonesRef.current.push({ ...clickZone, data: { type: 'hand_p1', index: originalIndex, card } });
     });
-  }, [gameState.hands, selectedHandIndex, drawCardAt, computeFixedSlots]);
+  }, [gameState.hands, selectedHandIndex, drawCardAt]);
 
       // 🔧 DEV MODE: Player 2 Hand (rechts unten, kompakter)
   const drawHandP2 = useCallback((ctx: CanvasRenderingContext2D) => {
     const hand = sortHandCards(gameState.hands[2]);
-    const slots = computeFixedSlots('hand.opponent');
+    const zone = getZone('hand.opponent');
+    if (!zone) return;
+
+    const slots = computeSlotRects(zone);
 
     // Hintergrund für P2 Hand
-    const z = ZONES['hand.opponent'];
-    if (z) {
-      const rect = z.rectPx as [number, number, number, number];
-      const [x, y, w, h] = rect;
-      ctx.fillStyle = 'rgba(255, 100, 100, 0.15)'; // Rötlicher Hintergrund für P2
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = 'rgba(255, 100, 100, 0.3)';
-      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    const [x, y, w, h] = zone.rectPx;
+    ctx.fillStyle = 'rgba(255, 100, 100, 0.15)'; // Rötlicher Hintergrund für P2
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(255, 100, 100, 0.3)';
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
 
-      // Label für P2 Hand
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Player 2 Hand', x + w/2, y - 8);
-    }
+    // Label für P2 Hand
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Player 2 Hand', x + w/2, y - 8);
 
-    slots.forEach((s, i) => {
+    slots.forEach((s: { x: number; y: number; w: number; h: number }, i: number) => {
       const card = hand[i];
       if (!card) return;
       // Find original index in unsorted hand for click handling
       const originalIndex = gameState.hands[2].findIndex(c => c.uid === card.uid);
       const isSel = gameState.current === 2 && selectedHandIndex === originalIndex;
-      drawCardAt(ctx, card, s.x, s.y, s.w, isSel, true, 2); // Show AP cost for player 2 hand
-      clickZonesRef.current.push({ x: s.x, y: s.y, w: s.w, h: s.h, data: { type: 'hand_p2', index: originalIndex, card } });
+      const clickZone = drawCardAt(ctx, card, s.x, s.y, s.w, isSel, true, 2); // Show AP cost for player 2 hand
+      clickZonesRef.current.push({ ...clickZone, data: { type: 'hand_p2', index: originalIndex, card } });
     });
-  }, [gameState, selectedHandIndex, drawCardAt, computeFixedSlots, ZONES]);
+  }, [gameState, selectedHandIndex, drawCardAt]);
   // Interventions strip (player traps)
   const drawInterventionsP1 = useCallback((ctx: CanvasRenderingContext2D) => {
     const traps = gameState.traps[1] || [];
-    const slots = computeStripSlots('interventions.player', traps.length);
+    const zone = getZone('interventions.player');
+    if (!zone) return;
 
-    // Hintergrund für Interventions-Stripe
-    const z = ZONES['interventions.player'];
-    if (z) {
-      const rect = z.rectPx as [number, number, number, number];
-      const [x, y, w, h] = rect;
-      ctx.fillStyle = 'rgba(200, 160, 255, 0.15)'; // Lavendelfarben für Interventionen
-      ctx.fillRect(x, y, w, h);
+    // Single intervention slot
+    const [zx, zy, zw, zh] = zone.rectPx;
+    const card = traps[0]; // Only first trap
 
-      // Slot-Benennung für Interventions-Stripe
-      ctx.fillStyle = 'rgba(200, 160, 255, 0.8)';
-      ctx.font = '11px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('Interventionen', x + 8, y + h - 6);
+    // Hintergrund für Interventions-Slot
+    ctx.fillStyle = 'rgba(200, 160, 255, 0.15)'; // Lavendelfarben für Interventionen
+    ctx.fillRect(zx, zy, zw, zh);
+    ctx.strokeStyle = 'rgba(200, 160, 255, 0.3)';
+    ctx.strokeRect(zx + 0.5, zy + 0.5, zw - 1, zh - 1);
+
+    // Slot-Benennung für Interventions-Slot
+    ctx.fillStyle = 'rgba(200, 160, 255, 0.8)';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Intervention', zx + 8, zy + zh - 6);
+
+    if (card) {
+      const clickZone = drawCardAt(ctx, card, zx, zy, zw, false, false);
+      clickZonesRef.current.push({ ...clickZone, data: { type: 'trap_p1', index: 0, card } });
     }
+  }, [gameState.traps, drawCardAt]);
 
-    slots.forEach((s, i) => {
-      const card = traps[i];
-      if (!card) return;
-      drawCardAt(ctx, card, s.x, s.y, s.w, false, false);
-      clickZonesRef.current.push({ x: s.x, y: s.y, w: s.w, h: s.h, data: { type: 'trap_p1', index: i, card } });
-    });
-  }, [gameState.traps, computeStripSlots, drawCardAt, ZONES]);
+  // Interventions strip (opponent traps)
+  const drawInterventionsP2 = useCallback((ctx: CanvasRenderingContext2D) => {
+    const traps = gameState.traps[2] || [];
+    const zone = getZone('interventions.opponent');
+    if (!zone) return;
+
+    // Single intervention slot
+    const [zx, zy, zw, zh] = zone.rectPx;
+    const card = traps[0]; // Only first trap
+
+    // Hintergrund für Interventions-Slot
+    ctx.fillStyle = 'rgba(200, 160, 255, 0.15)'; // Lavendelfarben für Interventionen
+    ctx.fillRect(zx, zy, zw, zh);
+    ctx.strokeStyle = 'rgba(200, 160, 255, 0.3)';
+    ctx.strokeRect(zx + 0.5, zy + 0.5, zw - 1, zh - 1);
+
+    // Slot-Benennung für Interventions-Slot
+    ctx.fillStyle = 'rgba(200, 160, 255, 0.8)';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Intervention', zx + 8, zy + zh - 6);
+
+    if (card) {
+      const clickZone = drawCardAt(ctx, card, zx, zy, zw, false, false);
+      clickZonesRef.current.push({ ...clickZone, data: { type: 'trap_p2', index: 0, card } });
+    }
+  }, [gameState.traps, drawCardAt]);
 
   // Single slot drawing function
   const drawSingleSlot = useCallback((
@@ -359,10 +340,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     clickType: string,
     player: Player
   ) => {
-    const z = ZONES[zoneId];
-    if (!z || (z.layout as any).type !== 'singleSlot') return;
-    const rect = z.rectPx as [number, number, number, number];
-    const [x, y, w, h] = rect;
+    const zone = getZone(zoneId);
+    if (!zone) return;
+    const [x, y, w, h] = zone.rectPx;
 
     // Hintergrundfarbe nach Kategorie
     let bgColor = 'rgba(0,0,0,0.1)'; // Standard
@@ -390,7 +370,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     if (card) {
       const isSelected = player === 1 && selectedHandIndex !== null && gameState.hands[1][selectedHandIndex] === card;
-      drawCardAt(ctx, card, x, y, w, isSelected, false);
+      const clickZone = drawCardAt(ctx, card, x, y, w, isSelected, false);
 
       // Kartenname unter dem Slot anzeigen
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
@@ -399,7 +379,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const textY = y + h + 16;
       ctx.fillText(card.name, x + w/2, textY);
 
-      clickZonesRef.current.push({ x, y, w, h, data: { type: 'slot_card', slot: clickType, card } });
+      clickZonesRef.current.push({ ...clickZone, data: { type: 'slot_card', slot: clickType, card } });
+
+      // 🔧 NEU: Sofort-Initiative-Slots sind klickbar für Aktivierung
+      if (clickType === 'instant' && gameState.current === player) {
+        clickZonesRef.current.push({
+          x, y, w, h,
+          data: { type: 'activate_instant', player, card }
+        });
+      }
     } else if (gameState.current === player) {
       // Slot-Benennung für leere Slots anzeigen (für den aktuellen Spieler)
       const slotName = getSlotDisplayName(zoneId, 0, player);
@@ -411,7 +399,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       clickZonesRef.current.push({ x, y, w, h, data: { type: 'empty_slot', slot: clickType } });
     }
-  }, [ZONES, selectedHandIndex, gameState, drawCardAt, getSlotDisplayName]);
+  }, [selectedHandIndex, gameState, drawCardAt, getSlotDisplayName]);
 
   // Draw permanent slots for player
   const drawPermanentSlotsP1 = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -427,9 +415,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Draw instant slots
   const drawInstantSlots = useCallback((ctx: CanvasRenderingContext2D) => {
-    drawSingleSlot(ctx, 'slot.instant.player', gameState.instantSlot[1], 'instant', 1);
-    drawSingleSlot(ctx, 'slot.instant.opponent', gameState.instantSlot[2], 'instant', 2);
-  }, [gameState.instantSlot, drawSingleSlot]);
+    // Sofort-Initiative-Slots aus dem Board zeichnen
+    const sofortPlayerCard = gameState.board[1].sofort[0];
+    const sofortOppCard = gameState.board[2].sofort[0];
+
+    drawSingleSlot(ctx, 'slot.instant.player', sofortPlayerCard, 'instant', 1);
+    drawSingleSlot(ctx, 'slot.instant.opponent', sofortOppCard, 'instant', 2);
+  }, [gameState.board, drawSingleSlot]);
 
   // Aktive Schlüsselwörter und Unterkategorien ermitteln
   const getActiveKeywordsAndSubcategories = useCallback((player: Player) => {
@@ -588,26 +580,89 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Clear click zones
     clickZonesRef.current = [];
 
-    // Background
-    ctx.fillStyle = '#0c131b';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Background: prefer PNG if configured
+    if (LAYOUT.background?.enabled && LAYOUT.background?.src) {
+      if (backgroundImageRef.current) {
+        ctx.drawImage(backgroundImageRef.current, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = '#0c131b';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    } else {
+      ctx.fillStyle = '#0c131b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
-    // Apply UI transform
-    const { scale, offX, offY } = getUiTransform();
+    // Apply UI transform (new signature)
+    const { scale, offsetX, offsetY } = getUiTransform(canvas.width, canvas.height);
     ctx.save();
-    ctx.translate(offX, offY);
+    ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
 
     // Draw opponent board (top rows) - clickable im Dev Mode
-    drawLane(ctx, 'row.public.opponent', 2, 'innen', devMode);
-    drawLane(ctx, 'row.government.opponent', 2, 'aussen', devMode);
+    // Draw opponent board using new layout system
+    const opponentPublicRects = getPublicRects('opponent');
+    const opponentGovRects = getGovernmentRects('opponent');
+
+    // Draw opponent public slots
+    opponentPublicRects.forEach((s: { x: number; y: number; w: number; h: number }, idx: number) => {
+      const card = gameState.board[2].innen[idx];
+      if (card) {
+        drawCardAt(ctx, card, s.x, s.y, s.w, false, false, 2);
+      }
+    });
+
+    // Draw opponent government slots
+    opponentGovRects.forEach((s: { x: number; y: number; w: number; h: number }, idx: number) => {
+      const card = gameState.board[2].aussen[idx];
+      if (card) {
+        drawCardAt(ctx, card, s.x, s.y, s.w, false, false, 2);
+      }
+    });
 
     // Draw opponent permanent slots
     drawPermanentSlotsP2(ctx);
 
     // Draw player board (middle rows)
-    drawLane(ctx, 'row.public.player', 1, 'innen', true);
-    drawLane(ctx, 'row.government.player', 1, 'aussen', true);
+    // Draw player board using new layout system
+    const playerPublicRects = getPublicRects('player');
+    const playerGovRects = getGovernmentRects('player');
+
+    // Draw player public slots
+    playerPublicRects.forEach((s: { x: number; y: number; w: number; h: number }, idx: number) => {
+      const card = gameState.board[1].innen[idx];
+      if (card) {
+        const clickZone = drawCardAt(ctx, card, s.x, s.y, s.w, false, false, 1);
+        clickZonesRef.current.push({
+          ...clickZone,
+          data: { type: 'row_slot', player: 1, lane: 'innen', index: idx }
+        });
+      } else {
+        // Empty slot click zone
+        clickZonesRef.current.push({
+          x: s.x, y: s.y, w: s.w, h: s.h,
+          data: { type: 'row_slot', player: 1, lane: 'innen', index: idx }
+        });
+      }
+    });
+
+    // Draw player government slots
+    playerGovRects.forEach((s: { x: number; y: number; w: number; h: number }, idx: number) => {
+      const card = gameState.board[1].aussen[idx];
+      if (card) {
+        const clickZone = drawCardAt(ctx, card, s.x, s.y, s.w, false, false, 1);
+        clickZonesRef.current.push({
+          ...clickZone,
+          data: { type: 'row_slot', player: 1, lane: 'aussen', index: idx }
+        });
+      } else {
+        // Empty slot click zone
+        clickZonesRef.current.push({
+          x: s.x, y: s.y, w: s.w, h: s.h,
+          data: { type: 'row_slot', player: 1, lane: 'aussen', index: idx }
+        });
+      }
+    });
 
     // Draw player permanent slots
     drawPermanentSlotsP1(ctx);
@@ -617,6 +672,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Draw interventions strip (player)
     drawInterventionsP1(ctx);
+
+    // Draw interventions strip (opponent) - nur im Dev Mode
+    if (devMode) {
+      drawInterventionsP2(ctx);
+    }
 
     // Draw hand (P1)
     drawHandP1(ctx);
@@ -632,10 +692,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.restore();
 
     // expose zones for debug snapshot
-    const zoneDump = Object.entries(ZONES).map(([id, z]) => ({ id, rectPx: z.rectPx, layout: z.layout }));
     (window as any).__politicardDebug = {
-      ...(window as any).__politicardDebug,
-      zones: zoneDump,
+      uiTransform: getUiTransform(canvas.width, canvas.height),
+      canvasSize: { width: canvas.width, height: canvas.height },
+      zones: LAYOUT.zones,
       clickZones: clickZonesRef.current.slice(0, 1000)
     };
 
@@ -671,52 +731,83 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // swallow diagnostic errors to avoid breaking rendering
       console.error('Diagnostic error', e);
     }
-  }, [getUiTransform, drawLane, drawHandP1, drawHandP2, drawInterventionsP1, drawPermanentSlotsP1, drawPermanentSlotsP2, drawInstantSlots, drawInfoPanels, devMode, ZONES, gameState.hands]);
+  }, [drawLane, drawHandP1, drawHandP2, drawInterventionsP1, drawInterventionsP2, drawPermanentSlotsP1, drawPermanentSlotsP2, drawInstantSlots, drawInfoPanels, devMode, gameState.hands]);
 
+  const DRAW_LAYOUT_OVERLAY = false; // force off per new layout system
+
+  // Load background image if configured
   useEffect(() => {
-    draw();
+    if (LAYOUT.background?.enabled && LAYOUT.background?.src) {
+      const img = new Image();
+      img.onload = () => { backgroundImageRef.current = img; requestAnimationFrame(draw); };
+      img.onerror = () => { console.warn('Failed to load background image', LAYOUT.background?.src); };
+      img.src = LAYOUT.background.src as string;
+    }
   }, [draw]);
+
+  const handleCardClick = useCallback((data: any) => {
+    // Hand-Klick
+    if (data.type === 'hand_p1') {
+      const uid = data.card?.uid ?? data.card?.id;
+      const stateHand = gameState.hands?.[1] || [];
+      const idxInState = stateHand.findIndex((c: any) => (c.uid ?? c.id) === uid);
+      onCardClick(data);
+      return;
+    }
+
+    // Slot-Klick
+    if (data.type === 'row_slot') {
+      const lane: 'public' | 'government' = data.lane;
+      const cap = getLaneCapacity(lane);
+
+      // Hole aktuelle Row-Länge aus gameState
+      const rowCards = lane === 'public'
+        ? gameState.board?.[1]?.innen ?? []
+        : gameState.board?.[1]?.aussen ?? [];
+
+      if (rowCards.length >= cap) {
+        // Optional: UI Feedback
+        console.warn(`Row ${lane} is full (${rowCards.length}/${cap})`);
+        return;
+      }
+
+      onCardClick(data);
+      return;
+    }
+
+    // Andere Klicks (empty_slot, board_card, etc.)
+    onCardClick(data);
+  }, [gameState, onCardClick]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const { scale, offX, offY } = getUiTransform();
+    const { scale, offsetX, offsetY } = getUiTransform(canvas.width, canvas.height);
+    const mx = (e.clientX - rect.left - offsetX) / scale;
+    const my = (e.clientY - rect.top - offsetY) / scale;
 
-    const mx = (e.clientX - rect.left - offX) / scale;
-    const my = (e.clientY - rect.top - offY) / scale;
-
-    // Find clicked zone
-    for (let i = clickZonesRef.current.length - 1; i >= 0; i--) {
-      const z = clickZonesRef.current[i];
-      if (mx >= z.x && mx <= z.x + z.w && my >= z.y && my <= z.y + z.h) {
-        onCardClick(z.data);
-        return;
-      }
-    }
-  }, [getUiTransform, onCardClick]);
+    const hit = clickZonesRef.current.find(z => mx >= z.x && mx <= z.x + z.w && my >= z.y && my <= z.y + z.h);
+    if (hit) handleCardClick(hit.data);
+  }, [handleCardClick]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const { scale, offX, offY } = getUiTransform();
+    const { scale, offsetX, offsetY } = getUiTransform(canvas.width, canvas.height);
+    const mx = (e.clientX - rect.left - offsetX) / scale;
+    const my = (e.clientY - rect.top - offsetY) / scale;
 
-    const mx = (e.clientX - rect.left - offX) / scale;
-    const my = (e.clientY - rect.top - offY) / scale;
-
-    // Find hovered zone
-    for (let i = clickZonesRef.current.length - 1; i >= 0; i--) {
-      const z = clickZonesRef.current[i];
-      if (mx >= z.x && mx <= z.x + z.w && my >= z.y && my <= z.y + z.h) {
-        onCardHover({ ...z.data, x: e.clientX, y: e.clientY });
-        return;
-      }
+    const hit = clickZonesRef.current.find(z => mx >= z.x && mx <= z.x + z.w && my >= z.y && my <= z.y + z.h);
+    if (hit) {
+      onCardHover({ ...hit.data, x: e.clientX, y: e.clientY });
+    } else {
+      onCardHover(null);
     }
-    onCardHover(null);
-  }, [getUiTransform, onCardHover]);
+  }, [onCardHover]);
 
   return (
     <canvas

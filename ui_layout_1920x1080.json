@@ -1,720 +1,114 @@
 {
-  "version": 3,
-  "canvas": {
-    "width": 1920,
-    "height": 1080,
-    "aspect": "16:9"
-  },
-  "generatedFrom": {
-    "colorMap": "UI Layout Editor",
-    "legend": "Generated from UI Layout Editor"
-  },
-  "scaling": {
-    "mode": "fit",
-    "letterbox": true,
-    "safeMargin": 0.02
-  },
-  "render": {
-    "opponentRotationDeg": 180
-  },
-  "colors": {
-    "#ff0035": "hand.player",
-    "#ffc500": "row.government.player",
-    "#00ff00": "row.public.player",
-    "#ff00fa": "slot.permanent.government.player",
-    "#08cdf4": "slot.permanent.public.player",
-    "#7b745b": "slot.instant.player",
-    "#aa0700": "row.government.opponent",
-    "#ff6553": "slot.permanent.government.opponent",
-    "#2693a9": "slot.permanent.public.opponent",
-    "#073842": "slot.instant.opponent"
-  },
   "zones": [
     {
-      "id": "government-1",
-      "rectPx": [
-        16,
-        304,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.008333333333333333,
-        0.2814814814814815,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 10
-    },
-    {
-      "id": "government-2",
-      "rectPx": [
-        288,
-        304,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.15,
-        0.2814814814814815,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 11
-    },
-    {
-      "id": "government-3",
-      "rectPx": [
-        560,
-        304,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.2916666666666667,
-        0.2814814814814815,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 12
-    },
-    {
-      "id": "government-4",
-      "rectPx": [
-        832,
-        304,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.43333333333333335,
-        0.2814814814814815,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 13
-    },
-    {
-      "id": "government-5",
-      "rectPx": [
-        1104,
-        304,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.575,
-        0.2814814814814815,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 14
-    },
-    {
-      "id": "public-1",
-      "rectPx": [
-        16,
-        560,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.008333333333333333,
-        0.5185185185185185,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 15
-    },
-    {
-      "id": "public-2",
-      "rectPx": [
-        288,
-        560,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.15,
-        0.5185185185185185,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 16
-    },
-    {
-      "id": "public-3",
-      "rectPx": [
-        560,
-        560,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.2916666666666667,
-        0.5185185185185185,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 17
-    },
-    {
-      "id": "public-4",
-      "rectPx": [
-        832,
-        560,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.43333333333333335,
-        0.5185185185185185,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 18
-    },
-    {
-      "id": "public-5",
-      "rectPx": [
-        1104,
-        560,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.575,
-        0.5185185185185185,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 19
-    },
-    {
-      "id": "dauerhaft-government",
-      "rectPx": [
-        1360,
-        304,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.7083333333333334,
-        0.2814814814814815,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "singleSlot"
-      },
-      "z": 20
-    },
-    {
-      "id": "dauerhaft-public",
-      "rectPx": [
-        1360,
-        560,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.7083333333333334,
-        0.5185185185185185,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "singleSlot"
-      },
-      "z": 21
-    },
-    {
-      "id": "sofort",
-      "rectPx": [
-        1352,
-        824,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.7041666666666667,
-        0.762962962962963,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "singleSlot"
-      },
-      "z": 22
-    },
-    {
-      "id": "opponent-government-1",
-      "rectPx": [
-        24,
-        168,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.0125,
-        0.15555555555555556,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 23
-    },
-    {
-      "id": "opponent-government-2",
-      "rectPx": [
-        164,
-        168,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.08541666666666667,
-        0.15555555555555556,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 24
-    },
-    {
-      "id": "opponent-government-3",
-      "rectPx": [
-        304,
-        168,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.15833333333333333,
-        0.15555555555555556,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 25
-    },
-    {
-      "id": "opponent-government-4",
-      "rectPx": [
-        444,
-        168,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.23125,
-        0.15555555555555556,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 26
-    },
-    {
-      "id": "opponent-government-5",
-      "rectPx": [
-        584,
-        168,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.30416666666666664,
-        0.15555555555555556,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 27
-    },
-    {
-      "id": "opponent-public-1",
-      "rectPx": [
-        24,
-        24,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.0125,
-        0.022222222222222223,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 28
-    },
-    {
-      "id": "opponent-public-2",
-      "rectPx": [
-        164,
-        24,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.08541666666666667,
-        0.022222222222222223,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 29
-    },
-    {
-      "id": "opponent-public-3",
-      "rectPx": [
-        304,
-        24,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.15833333333333333,
-        0.022222222222222223,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 30
-    },
-    {
-      "id": "opponent-public-4",
-      "rectPx": [
-        444,
-        24,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.23125,
-        0.022222222222222223,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 31
-    },
-    {
-      "id": "opponent-public-5",
-      "rectPx": [
-        584,
-        24,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.30416666666666664,
-        0.022222222222222223,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "fixedSlots",
-        "slots": 5,
-        "slotSize": [
-          256,
-          256
-        ],
-        "gap": 16,
-        "alignment": "center"
-      },
-      "z": 32
-    },
-    {
-      "id": "opponent-dauerhaft-public",
-      "rectPx": [
-        715,
-        26,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.3723958333333333,
-        0.024074074074074074,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "singleSlot"
-      },
-      "z": 33
-    },
-    {
-      "id": "opponent-dauerhaft-government",
-      "rectPx": [
-        715,
-        169,
-        128,
-        128
-      ],
-      "rectNorm": [
-        0.3723958333333333,
-        0.15648148148148147,
-        0.06666666666666667,
-        0.11851851851851852
-      ],
-      "layout": {
-        "type": "singleSlot"
-      },
-      "z": 34
-    },
-    {
-      "id": "opponent-sofort",
-      "rectPx": [
-        845,
-        26,
-        256,
-        256
-      ],
-      "rectNorm": [
-        0.4401041666666667,
-        0.024074074074074074,
-        0.13333333333333333,
-        0.23703703703703705
-      ],
-      "layout": {
-        "type": "singleSlot"
-      },
-      "z": 35
-    },
-    {
       "id": "hand-player",
-      "rectPx": [
-        0,
-        824,
-        1339,
-        256
-      ],
-      "rectNorm": [
-        0,
-        0.762962962962963,
-        0.6973958333333333,
-        0.23703703703703705
-      ],
+      "rectPx": [360, 900, 1200, 150],
       "layout": {
         "type": "fixedSlots",
-        "slots": 10,
-        "slotSize": [
-          180,
-          180
-        ],
-        "gap": 8,
+        "slots": 7,
+        "slotSize": [150, 140],
+        "gap": 20,
         "alignment": "center"
-      },
-      "z": 36
+      }
     },
     {
       "id": "hand-opponent",
-      "rectPx": [
-        1655,
-        0,
-        265,
-        1080
-      ],
-      "rectNorm": [
-        0.8619791666666666,
-        0,
-        0.13802083333333334,
-        1
-      ],
+      "rectPx": [360, 30, 1200, 150],
       "layout": {
         "type": "fixedSlots",
-        "slots": 10,
-        "slotSize": [
-          64,
-          144
-        ],
-        "gap": 4,
+        "slots": 7,
+        "slotSize": [150, 140],
+        "gap": 20,
         "alignment": "center"
-      },
-      "z": 37
+      }
+    },
+    {
+      "id": "public-1",
+      "rectPx": [100, 620, 120, 160]
+    },
+    {
+      "id": "public-2",
+      "rectPx": [240, 620, 120, 160]
+    },
+    {
+      "id": "public-3",
+      "rectPx": [380, 620, 120, 160]
+    },
+    {
+      "id": "public-4",
+      "rectPx": [520, 620, 120, 160]
+    },
+    {
+      "id": "public-5",
+      "rectPx": [660, 620, 120, 160]
+    },
+    {
+      "id": "government-1",
+      "rectPx": [100, 440, 120, 160]
+    },
+    {
+      "id": "government-2",
+      "rectPx": [240, 440, 120, 160]
+    },
+    {
+      "id": "government-3",
+      "rectPx": [380, 440, 120, 160]
+    },
+    {
+      "id": "government-4",
+      "rectPx": [520, 440, 120, 160]
+    },
+    {
+      "id": "government-5",
+      "rectPx": [660, 440, 120, 160]
+    },
+    {
+      "id": "opponent-public-1",
+      "rectPx": [100, 300, 120, 160]
+    },
+    {
+      "id": "opponent-public-2",
+      "rectPx": [240, 300, 120, 160]
+    },
+    {
+      "id": "opponent-public-3",
+      "rectPx": [380, 300, 120, 160]
+    },
+    {
+      "id": "opponent-public-4",
+      "rectPx": [520, 300, 120, 160]
+    },
+    {
+      "id": "opponent-public-5",
+      "rectPx": [660, 300, 120, 160]
+    },
+    {
+      "id": "opponent-government-1",
+      "rectPx": [100, 200, 120, 160]
+    },
+    {
+      "id": "opponent-government-2",
+      "rectPx": [240, 200, 120, 160]
+    },
+    {
+      "id": "opponent-government-3",
+      "rectPx": [380, 200, 120, 160]
+    },
+    {
+      "id": "opponent-government-4",
+      "rectPx": [520, 200, 120, 160]
+    },
+    {
+      "id": "opponent-government-5",
+      "rectPx": [660, 200, 120, 160]
+    },
+    {
+      "id": "sofort",
+      "rectPx": [1400, 620, 120, 160]
+    },
+    {
+      "id": "opponent-sofort",
+      "rectPx": [1400, 300, 120, 160]
     }
   ]
 }

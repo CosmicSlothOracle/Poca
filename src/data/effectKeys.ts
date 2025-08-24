@@ -56,6 +56,12 @@ export const EK = {
   AP_PLUS_1: 'ap_plus_1',       // Verzögerungsverfahren
   THINK_TANK: 'think_tank',     // Ziehe 1; nächster Gov +2 I
   SPIN_DOCTOR: 'spin_doctor',   // +2 I auf stärkste eigene Gov
+
+  // 🔥 CLUSTER 3: Spezielle Initiative-Boni (Passive Effekte)
+  SCIENCE_INITIATIVE_BONUS: 'science_initiative_bonus',     // Jennifer Doudna: +1 Einfluss bei Initiativen
+  MILITARY_INITIATIVE_PENALTY: 'military_initiative_penalty', // Noam Chomsky: -1 Einfluss bei Initiativen
+  HEALTH_INITIATIVE_BONUS: 'health_initiative_bonus',       // Anthony Fauci: +1 Einfluss bei Initiativen
+  CULTURE_INITIATIVE_BONUS: 'culture_initiative_bonus',     // Ai Weiwei: +1 Karte +1 AP bei Initiativen
 } as const;
 
 export type EffectKey = typeof EK[keyof typeof EK];

@@ -1,14 +1,19 @@
 import type { UID } from './primitives';
-import type { GEvent } from './events';
-import type { EffectEvent } from './effects';
+
+export type Player = 1 | 2;
+
+export type CardKind = 'pol' | 'spec';
 
 export interface Card {
   id: number;
   key: string;
   name: string;
-  kind: 'pol' | 'spec';
+  kind: CardKind;
   baseId: number;
   uid: number;
+  // optional card-specific fields
+  deactivated?: boolean;  // runtime disabled status
+  protectedOnce?: boolean;// runtime shield flag (consumed once)
 }
 
 export interface PoliticianCard extends Card {
@@ -16,11 +21,10 @@ export interface PoliticianCard extends Card {
   tag: string;
   T: number;
   BP: number;
-  influence: number; // 🔥 VEREINFACHT: Nur noch Einfluss, kein separates M mehr!
-  effect?: string; // 🔥 EFFEKT PROPERTY FÜR JOSCHKA FISCHER NGO-BOOST!
+  influence: number;
+  effect?: string;
   protected: boolean;
-  protectedUntil?: number | null; // Round number when protection expires
-  deactivated: boolean;
+  protectedUntil?: number | null;
   tempDebuffs: number;
   tempBuffs: number;
   _activeUsed: boolean;
@@ -33,16 +37,15 @@ export interface SpecialCard extends Card {
   type: string;
   impl: string;
   bp: number;
-  tag?: string; // 🔥 TAG PROPERTY FÜR NGO/PLATTFORM DETECTION!
-  deactivated?: boolean; // For public cards that can be deactivated
+  tag?: string;
 }
 
 export interface BasePolitician {
   id: number;
   key: string;
   name: string;
-  influence: number; // 🔥 VEREINFACHT: M → influence
-  tag?: string; // 🔧 FIX: Optional für Kompatibilität mit gameData.ts
+  influence: number;
+  tag?: string;
   T: number;
   BP?: number;
   effect?: string;
@@ -55,46 +58,102 @@ export interface BaseSpecial {
   type: string;
   speed?: string;
   bp: number;
-  effect?: string; // 🔧 FIX: Optional für Kompatibilität mit gameData.ts
+  effect?: string;
   tier: number;
   impl: string;
   tag?: string;
-  effectKey?: string; // Phase 1: effectKey für Initiative-Handler
+  effectKey?: string;
+}
+
+// Row: government = aussen, public = innen, plus sofort lane for instant initiatives
+export type BoardRow = {
+  innen: Card[];   // PUBLIC
+  aussen: Card[];  // GOVERNMENT
+  sofort: Card[];  // INSTANT (Sofort-Initiativen, warten auf Aktivierung)
+};
+
+export type Board = {
+  1: BoardRow;
+  2: BoardRow;
+};
+
+export type PermanentSlots = {
+  1: { government: Card | null; public: Card | null };
+  2: { government: Card | null; public: Card | null };
+};
+
+export interface EffectFlags {
+  // AP system — single source of truth
+  initiativeDiscount: number;        // Discount for next initiative(s), consumes 1 per use
+  initiativeRefund: number;          // Refund-pool for initiatives, consumes 1 per use
+  govRefundAvailable: boolean;       // First government card per turn gets +1 AP refund (Greta/Movement)
+
+  // Round-scoped Initiative "Cluster 3" auras (active while round lasts)
+  initiativeInfluenceBonus: number;         // e.g., Jennifer (+1) + Fauci (+1)
+  initiativeInfluencePenaltyForOpponent: number; // Noam gives opponent -1 (we store on owner, apply against enemy)
+  initiativeOnPlayDraw1Ap1: boolean;        // Ai Weiwei
+
+  // Legacy flags for compatibility
+  nextGovPlus2?: boolean;
+  diplomatInfluenceTransferUsed?: boolean;
+  influenceTransferBlocked?: boolean;
+  scienceInitiativeBonus?: boolean;
+  healthInitiativeBonus?: boolean;
+  cultureInitiativeBonus?: boolean;
+  militaryInitiativePenalty?: boolean;
+  nextInitiativeMinus1?: boolean;
+  freeInitiativeAvailable?: boolean;
+  platformRefundAvailable?: boolean;
+  platformRefundUsed?: boolean;
+  ngoInitiativeDiscount?: number;
+  platformInitiativeDiscount?: number;
+  nextGovernmentCardBonus?: number;
+  publicEffectDoubled?: boolean;
+  cannotPlayInitiatives?: boolean;
+  nextCardProtected?: boolean;
+  platformAfterInitiativeBonus?: boolean;
+  interventionEffectReduced?: boolean;
+  nextInitiativeRefund?: number;
+  nextInitiativeDiscounted?: boolean;
+  opportunistActive?: boolean;
+  markZuckerbergUsed: boolean;
+}
+
+export function createDefaultEffectFlags(): EffectFlags {
+  return {
+    initiativeDiscount: 0,
+    initiativeRefund: 0,
+    govRefundAvailable: false,
+
+    initiativeInfluenceBonus: 0,
+    initiativeInfluencePenaltyForOpponent: 0,
+    initiativeOnPlayDraw1Ap1: false,
+
+    markZuckerbergUsed: false,
+  };
 }
 
 export interface GameState {
   round: number;
-  current: 1 | 2;
+  current: Player;
   passed: { 1: boolean; 2: boolean };
   actionPoints: { 1: number; 2: number };
   actionsUsed: { 1: number; 2: number };
   decks: { 1: Card[]; 2: Card[] };
   hands: { 1: Card[]; 2: Card[] };
   traps: { 1: Card[]; 2: Card[] };
-  board: {
-    1: { innen: Card[]; aussen: Card[] };
-    2: { innen: Card[]; aussen: Card[] };
-  };
-  permanentSlots: {
-    1: { government: Card | null; public: Card | null };
-    2: { government: Card | null; public: Card | null };
-  };
-  instantSlot: {
-    1: Card | null;
-    2: Card | null;
-  };
+  board: Board;
+  permanentSlots: PermanentSlots;
   discard: Card[];
   log: string[];
   activeRefresh: { 1: number; 2: number };
   roundsWon: { 1: number; 2: number };
-  // Kennzeichnet, ob ein Spieler von der KI gesteuert wird
   aiEnabled?: { 1: boolean; 2: boolean };
   gameWinner?: 1 | 2 | null;
-  // 🔥 PHASE 0: Neue Engine-Infrastruktur
-  blocked?: { initiatives?: boolean }; // durch Oppositionsblockade
-  shields?: Set<UID>; // UIDs mit Schutz (Systemrelevant)
-  _queue?: GEvent[]; // Engine-Queue für Event-Resolution
-  _effectQueue?: EffectEvent[]; // Effect-Queue für Karteneffekte
+  blocked?: { initiatives?: boolean };
+  shields?: Set<UID>;
+  _queue?: EffectEvent[];
+  _effectQueue?: EffectEvent[];
   effectFlags: {
     1: EffectFlags;
     2: EffectFlags;
@@ -105,52 +164,7 @@ export interface GameState {
     2: ActiveAbility[];
   };
   pendingAbilitySelect?: AbilitySelect;
-  // 🧹 Zug-Ende-System: Flag für automatischen Zugwechsel nach Queue-Auflösung
   isEndingTurn?: boolean;
-}
-
-
-
-export function createDefaultEffectFlags(): EffectFlags {
-  return {
-    // bestehende Defaults …
-    freeInitiativeAvailable: false,
-    ngoInitiativeDiscount: 0,
-    nextInitiativeDiscounted: false,
-
-    // 🔧 NEU:
-    nextInitiativeRefund: 0,
-    govRefundAvailable: false,
-
-    // Alt (nicht mehr nutzen):
-    platformRefundAvailable: false,
-    platformRefundUsed: false,
-
-    // Weitere bestehende Defaults...
-    platformInitiativeDiscount: 0,
-    diplomatInfluenceTransferUsed: false,
-    influenceTransferBlocked: false,
-    nextGovPlus2: false,
-    nextGovernmentCardBonus: 0,
-    nextInitiativeMinus1: false,
-    publicEffectDoubled: false,
-    cannotPlayInitiatives: false,
-    nextCardProtected: false,
-    platformAfterInitiativeBonus: false,
-    interventionEffectReduced: false,
-
-    // 🔧 NEU: Opportunist-Flag für Mirror-Effekte
-    opportunistActive: false,
-
-    // 🔥 CLUSTER 1: Passive Effekte Flags
-    markZuckerbergUsed: false, // Mark Zuckerberg: einmal pro Runde
-
-    // 🔥 CLUSTER 3: Temporäre Initiative-Boni (bis Rundenende)
-    scienceInitiativeBonus: false,    // Jennifer Doudna: +1 Einfluss bei Initiativen
-    militaryInitiativePenalty: false, // Noam Chomsky: -1 Einfluss bei Initiativen (für Gegner)
-    healthInitiativeBonus: false,     // Anthony Fauci: +1 Einfluss bei Initiativen
-    cultureInitiativeBonus: false,    // Ai Weiwei: +1 Karte +1 AP bei Initiativen
-  };
 }
 
 export interface BuilderState {
@@ -163,6 +177,12 @@ export interface BuilderEntry {
   baseId: number;
   count: number;
 }
+
+export type BoardSide = {
+  innen: Card[];
+  aussen: Card[];
+  sofort: Card[];
+};
 
 export interface UIZone {
   x: number;
@@ -212,14 +232,14 @@ export interface ActiveAbility {
   cooldown: number;
   usedThisRound: boolean;
   type: AbilitySelect['type'];
-  cost?: number; // AP Cost
+  cost?: number;
   requirements?: string[];
 }
 
 export interface EffectQueueItem {
   id: string;
   type: 'intervention' | 'sofort' | 'passiv' | 'aktiv';
-  priority: number; // 1=highest (intervention), 4=lowest (aktiv)
+  priority: number;
   source: Card;
   target?: Card;
   effect: () => void;
@@ -235,47 +255,23 @@ export interface EffectQueue {
 }
 
 export type Lane = 'innen' | 'aussen';
-export type Player = 1 | 2;
 
-// EffectFlags Type Definition
-export interface EffectFlags {
-  // bestehende Felder …
-  freeInitiativeAvailable: boolean;
-  ngoInitiativeDiscount: number;
-  nextInitiativeDiscounted: boolean;
+// Effect Event model (used by utils/queue.ts)
+export type EffectEvent =
+  | { type: 'LOG'; msg: string }
+  | { type: 'ADD_AP'; player: Player; amount: number }                           // clamps [0..4]
+  | { type: 'DRAW_CARDS'; player: Player; amount: number }
+  | { type: 'DISCARD_RANDOM_FROM_HAND'; player: Player; amount: number }
+  | { type: 'ADJUST_INFLUENCE'; player: Player; amount: number; reason?: string } // alias → BUFF_STRONGEST_GOV
+  | { type: 'BUFF_STRONGEST_GOV'; player: Player; amount: number }               // +/- tempBuffs
+  | { type: 'SET_DISCOUNT'; player: Player; amount: number }                     // initiativeDiscount += clamp
+  | { type: 'REFUND_NEXT_INITIATIVE'; player: Player; amount: number }           // initiativeRefund += clamp
+  | { type: 'GRANT_SHIELD'; targetUid: number }                                  // shields.add(uid)
+  | { type: 'DEACTIVATE_CARD'; targetUid: number }                                // card.deactivated = true
+  | { type: 'DEACTIVATE_RANDOM_HAND'; player: Player; amount: number }           // random hand cards → discard
+  | { type: 'INITIATIVE_ACTIVATED'; player: Player }                             // löst Cluster-3 + Plattform aus
+  | { type: 'ADJUST_STRONGEST_GOV'; player: Player; amount: number };
 
-  // 🔧 NEU: zentrales Refund-Becken für Initiativen (stackbar)
-  nextInitiativeRefund: number;
-
-  // 🔧 Greta-Refund für die erste Regierungskarte pro Zug
-  govRefundAvailable: boolean;
-
-  // 🗑️ Alt: nicht mehr verwenden (optional in Typ lassen, aber nirgendwo nutzen)
-  platformRefundAvailable: boolean;
-  platformRefundUsed: boolean;
-
-  // Weitere bestehende Felder...
-  platformInitiativeDiscount: number;
-  diplomatInfluenceTransferUsed: boolean;
-  influenceTransferBlocked: boolean;
-  nextGovPlus2: boolean;
-  nextGovernmentCardBonus: number;
-  nextInitiativeMinus1: boolean;
-  publicEffectDoubled: boolean;
-  cannotPlayInitiatives: boolean;
-  nextCardProtected: boolean;
-  platformAfterInitiativeBonus: boolean;
-  interventionEffectReduced: boolean;
-
-  // 🔧 NEU: Opportunist-Flag für Mirror-Effekte
-  opportunistActive: boolean;
-
-  // 🔥 CLUSTER 1: Passive Effekte Flags
-  markZuckerbergUsed: boolean; // Mark Zuckerberg: einmal pro Runde
-
-  // 🔥 CLUSTER 3: Temporäre Initiative-Boni (bis Rundenende)
-  scienceInitiativeBonus: boolean;    // Jennifer Doudna: +1 Einfluss bei Initiativen
-  militaryInitiativePenalty: boolean; // Noam Chomsky: -1 Einfluss bei Initiativen (für Gegner)
-  healthInitiativeBonus: boolean;     // Anthony Fauci: +1 Einfluss bei Initiativen
-  cultureInitiativeBonus: boolean;    // Ai Weiwei: +1 Karte +1 AP bei Initiativen
+export function createEmptyBoardRow(): BoardRow {
+  return { innen: [], aussen: [], sofort: [] };
 }

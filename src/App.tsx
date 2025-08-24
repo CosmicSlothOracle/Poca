@@ -6,8 +6,9 @@ import { EventLogModal } from './components/EventLogModal';
 import { HandCardModal } from './components/HandCardModal';
 import { GameLogModal } from './components/GameLogModal';
 import UILayoutEditor from './components/UILayoutEditor';
+import CardEffectTestSuite from './test/CardEffectTestSuite';
 import { useGameState } from './hooks/useGameState';
-import { BuilderEntry, PoliticianCard } from './types/game';
+import { BuilderEntry, PoliticianCard, Player } from './types/game';
 import { Specials, PRESET_DECKS } from './data/gameData';
 import { buildDeckFromEntries } from './utils/gameUtils';
 import { copyDebugSnapshotToClipboard, downloadDebugSnapshot } from './utils/debugExport';
@@ -28,7 +29,7 @@ function App() {
   const [devMode, setDevMode] = useState(false);
 
   // UI Layout Editor Route
-  const [currentRoute, setCurrentRoute] = useState<'game' | 'ui-editor'>('game');
+  const [currentRoute, setCurrentRoute] = useState<'game' | 'ui-editor' | 'test-suite'>('game');
 
   const {
     gameState,
@@ -37,6 +38,7 @@ function App() {
     startMatchWithDecks,
     startMatchVsAI,
     playCard,
+    activateInstantInitiative,
     runAITurn,
     selectHandCard,
     passTurn,
@@ -76,11 +78,22 @@ function App() {
           nextTurn();
           log(`⏭️ Player ${gameState.current} beendet Zug`);
         }
+
+        // 'A' für Sofort-Initiative aktivieren (aktueller Spieler)
+        if (event.key === 'a' || event.key === 'A') {
+          activateInstantInitiative(gameState.current);
+          log(`🎯 Player ${gameState.current} aktiviert Sofort-Initiative`);
+        }
       }
 
       // UI Layout Editor Toggle mit 'U' Taste
       if (event.key === 'u' || event.key === 'U') {
         setCurrentRoute(currentRoute === 'game' ? 'ui-editor' : 'game');
+      }
+
+      // Test Suite Toggle mit 'T' Taste
+      if (event.key === 't' || event.key === 'T') {
+        setCurrentRoute(currentRoute === 'game' ? 'test-suite' : 'game');
       }
 
       // Debug snapshot: Ctrl+D copies to clipboard, Shift+D downloads file
@@ -97,7 +110,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameInfoModalOpen, eventLogModalOpen, gameLogModalOpen, devMode, log, gameState, passTurn, nextTurn, currentRoute]);
+  }, [gameInfoModalOpen, eventLogModalOpen, gameLogModalOpen, devMode, log, gameState, passTurn, nextTurn, currentRoute, activateInstantInitiative]);
 
   const handleCardClick = useCallback((data: any) => {
     console.log('🔧 DEBUG: handleCardClick called with:', data);
@@ -233,7 +246,16 @@ function App() {
 
     if (data.type === 'empty_slot') {
       const currentPlayer = gameState.current;
-      if (selectedHandIndex === null) {
+      const clickedSlotType = data.slot;
+
+      // Spezielle Behandlung für leere Instant-Slots
+      if (clickedSlotType === 'instant') {
+        if (selectedHandIndex === null) {
+          console.log('ℹ️ INFO: Leerer Sofort-Initiative-Slot geklickt - wähle eine Sofort-Initiative aus der Hand aus');
+          return;
+        }
+        // Fall durch zur normalen Slot-Logik
+      } else if (selectedHandIndex === null) {
         console.log('❌ ERROR: Leerer Slot geklickt aber keine Karte ausgewählt');
         return;
       }
@@ -276,8 +298,8 @@ function App() {
       }
 
       if (slotType === 'instant' && specCard.type === 'Sofort-Initiative') {
-        // Activate instant initiative
-        console.log('🎯 UI: Sofort-Initiative aktiviert - ' + card.name + ' für Player ' + currentPlayer);
+        // Place instant initiative in sofort slot
+        console.log('🎯 UI: Sofort-Initiative in Slot gelegt - ' + card.name + ' für Player ' + currentPlayer);
         console.log('📊 FLOW: UI → playCard(' + currentPlayer + ', ' + selectedHandIndex + ') | Instant initiative | Data: { card: "' + card.name + '", type: "Sofort-Initiative", player: ' + currentPlayer + ' }');
         playCard(currentPlayer, selectedHandIndex);
         selectHandCard(null);
@@ -285,6 +307,15 @@ function App() {
       }
 
       console.log('❌ ERROR: Karten-Typ passt nicht zum Slot - Card: ' + specCard.type + ', Slot: ' + slotType);
+      return;
+    }
+
+    // 🔧 NEU: Sofort-Initiative aus dem Slot aktivieren
+    if (data.type === 'activate_instant') {
+      const player = data.player as Player;
+      const card = data.card;
+      console.log('🎯 UI: Sofort-Initiative aus Slot aktiviert - ' + card.name + ' für Player ' + player);
+      activateInstantInitiative(player);
       return;
     }
   }, [gameState, selectedHandIndex, playCard, selectHandCard, passTurn, nextTurn, log]);
@@ -520,10 +551,27 @@ function App() {
         >
           🎨 UI Editor
         </button>
+        <button
+          onClick={() => setCurrentRoute('test-suite')}
+          style={{
+            background: currentRoute === 'test-suite' ? '#3b82f6' : '#374151',
+            color: 'white',
+            border: 'none',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          🧪 Test Suite
+        </button>
       </div>
 
       {currentRoute === 'ui-editor' ? (
         <UILayoutEditor />
+      ) : currentRoute === 'test-suite' ? (
+        <CardEffectTestSuite />
       ) : (
         <div style={{
           position: 'fixed',

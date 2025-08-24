@@ -5,10 +5,10 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 **Wie funktionieren die Werte?**
 
-- **Power (M):** Der Basis-Influencewert der Karte
+- **Influence:** Der Basis-Einflusswert der Karte (vereinfacht von Power/M)
 - **Tier:** Die Rangstufe (Tier 1 = normal, Tier 2 = maechtiger)
 - **HP:** Was die Karte beim Deckbuilding kostet (du hast 108 HP Budget)
-- **Influence:** Power + alle Boni - alle Mali
+- **Einfluss:** Influence + alle Boni - alle Mali
 - **Faehigkeit:** Spezialeffekt der Karte
 
 ---
@@ -17,11 +17,11 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 ### **Vladimir Putin**
 
-- **Power:** 10
+- **Influence:** 10
 - **Tier:** 2 (maechtig)
 - **Deckbuildingkosten:** 17 HP
-- **Influence:** 10 (Basis)
-- **Faehigkeit:** Du darfst 2 Interventions gleichzeitig spielen
+- **Einfluss:** 10 (Basis)
+- **Faehigkeit:** Du darfst 2 Interventionen gleichzeitig spielen
 - **Keyword:** Leadership (erste Initiative pro Round kostet 0 Action Points)
 - **Persoenliche Informationen:**
   - Staatsangehoerigkeit: Russisch
@@ -33,11 +33,11 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 ### **Xi Jinping**
 
-- **Power:** 10
+- **Influence:** 10
 - **Tier:** 2 (maechtig)
 - **Deckbuildingkosten:** 17 HP
-- **Influence:** 10 (Basis)
-- **Faehigkeit:** Gegnerische NGO-Effecte sind fuer 1 Round deaktiviert
+- **Einfluss:** 10 (Basis)
+- **Faehigkeit:** Gegnerische NGO-Effekte sind für 1 Runde deaktiviert
 - **Keyword:** Leadership (erste Initiative pro Round kostet 0 Action Points)
 - **Persoenliche Informationen:**
   - Staatsangehoerigkeit: Chinesisch
@@ -81,11 +81,11 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 ### **Volodymyr Zelenskyy**
 
-- **Power:** 9
+- **Influence:** 9
 - **Tier:** 2 (maechtig)
 - **Deckbuildingkosten:** 13 HP
-- **Influence:** 9 (Basis)
-- **Faehigkeit:** Wenn du weniger Influence hast als der Gegner: +2 Influence auf alle deine Government Cards
+- **Einfluss:** 9 (Basis)
+- **Faehigkeit:** Wenn du weniger Einfluss hast als der Gegner: +2 Einfluss auf alle deine Government Cards
 - **Keyword:** Leadership (erste Initiative pro Round kostet 0 Action Points)
 - **Persoenliche Informationen:**
   - Staatsangehoerigkeit: Ukrainisch
@@ -97,12 +97,12 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 ### **Ursula von der Leyen**
 
-- **Power:** 9
+- **Influence:** 9
 - **Tier:** 2 (maechtig)
 - **Deckbuildingkosten:** 15 HP
-- **Influence:** 9 (Basis)
+- **Einfluss:** 9 (Basis)
 - **Faehigkeit:** Bei einer EU-Karte: +1 Action Points (AP)
-- **Schluesselwoerter:** Leadership, Diplomat (Influenceverschiebung einmal pro Zug)
+- **Schluesselwoerter:** Leadership, Diplomat (Einflussverschiebung einmal pro Zug)
 - **Persoenliche Informationen:**
   - Staatsangehoerigkeit: Deutsch
   - Geburtsdatum: 8. Oktober 1958
@@ -145,12 +145,12 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 ### **Sergey Lavrov**
 
-- **Power:** 9
+- **Influence:** 9
 - **Tier:** 2 (maechtig)
 - **Deckbuildingkosten:** 13 HP
-- **Influence:** 9 (Basis)
-- **Faehigkeit:** Du kannst gegnerischen Influence auf deine Government Cards umleiten (einmal pro Game)
-- **Keyword:** Diplomat (Influenceverschiebung einmal pro Zug)
+- **Einfluss:** 9 (Basis)
+- **Faehigkeit:** Du kannst gegnerischen Einfluss auf deine Government Cards umleiten (einmal pro Game)
+- **Keyword:** Diplomat (Einflussverschiebung einmal pro Zug)
 - **Persoenliche Informationen:**
   - Staatsangehoerigkeit: Russisch
   - Geburtsdatum: 21. Maerz 1950
@@ -177,12 +177,12 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 ### **Jens Stoltenberg**
 
-- **Power:** 8
+- **Influence:** 8
 - **Tier:** 2 (maechtig)
 - **Deckbuildingkosten:** 12 HP
-- **Influence:** 8 (Basis)
-- **Faehigkeit:** NATO-Buff: Wenn eine Government Cards mit Power 7 oder hoeher liegt: +1 Influence
-- **Keyword:** Diplomat (Influenceverschiebung einmal pro Zug)
+- **Einfluss:** 8 (Basis)
+- **Faehigkeit:** NATO-Buff: Wenn eine Government Cards mit Influence 7 oder hoeher liegt: +1 Einfluss
+- **Keyword:** Diplomat (Einflussverschiebung einmal pro Zug)
 - **Persoenliche Informationen:**
   - Staatsangehoerigkeit: Norwegisch
   - Geburtsdatum: 16. Maerz 1959
@@ -241,11 +241,11 @@ Government Cards sind Politiker und Staatschefs, die dir Influence geben. Du spi
 
 ### **Kamala Harris**
 
-- **Power:** 7
+- **Influence:** 7
 - **Tier:** 2 (maechtig)
 - **Deckbuildingkosten:** 11 HP
-- **Influence:** 7 (Basis)
-- **Faehigkeit:** Einmal pro Round: +1 Influence auf eine Government Cards mit Power 5 oder weniger
+- **Einfluss:** 7 (Basis)
+- **Faehigkeit:** Einmal pro Round: +1 Einfluss auf eine Government Cards mit Influence 5 oder weniger
 - **Keyword:** Leadership (erste Initiative pro Round kostet 0 Action Points)
 - **Persoenliche Informationen:**
   - Staatsangehoerigkeit: US-Amerikanisch

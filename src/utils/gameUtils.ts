@@ -2,6 +2,7 @@ import { Card, PoliticianCard, SpecialCard, GameState, Player } from '../types/g
 import { getCardImagePath, Pols, Specials } from '../data/gameData';
 import { makePolInstance, makeSpecInstance } from './cardUtils';
 import { makeUid } from './id';
+import { getLaneCapacity } from '../ui/layout';
 
 // Re-export from specialized modules for backwards compatibility
 export {
@@ -94,6 +95,23 @@ export function sumGovernmentInfluenceWithAuras(state: GameState, player: Player
       if (!hasNgoMovement) influence += 1;
     }
 
+        // 🔥 CLUSTER 3: Temporäre Initiative-Boni (bis Rundenende)
+
+    // Jennifer Doudna: +1 Einfluss bei Initiativen
+    if (state.effectFlags[player]?.scienceInitiativeBonus) {
+      influence += 1;
+    }
+
+    // Anthony Fauci: +1 Einfluss bei Initiativen
+    if (state.effectFlags[player]?.healthInitiativeBonus) {
+      influence += 1;
+    }
+
+    // Noam Chomsky: -1 Einfluss bei Initiativen (für Gegner)
+    if (state.effectFlags[player]?.militaryInitiativePenalty) {
+      influence -= 1;
+    }
+
     // Alternative Fakten is applied within interventions; no direct change here
 
     total += influence;
@@ -134,7 +152,19 @@ export function drawCardsAtRoundEnd(
   [1, 2].forEach(player => {
     const targetHandSize = 5;
     const currentHandSize = newHands[player as Player].length;
-    const drawCount = Math.max(0, targetHandSize - currentHandSize);
+    let drawCount = Math.max(0, targetHandSize - currentHandSize);
+
+    // 🔥 MUKESH AMBANI EFFEKT: Gegner darf 1 Karte weniger nachziehen
+    const opponent = player === 1 ? 2 : 1;
+    const opponentBoard = state.board[opponent];
+    const mukeshAmbani = opponentBoard.innen.find(card =>
+      card.kind === 'spec' && (card as any).name === 'Mukesh Ambani'
+    );
+
+    if (mukeshAmbani && drawCount > 0) {
+      drawCount = Math.max(0, drawCount - 1);
+      log(`🔥 MUKESH AMBANI EFFEKT: P${player} zieht 1 Karte weniger (${drawCount} statt ${drawCount + 1})`);
+    }
 
     if (drawCount > 0) {
       const result = drawCards(player as Player, drawCount,
@@ -200,4 +230,13 @@ export function drawCardImage(
     ctx.drawImage(img, dx, dy, size, size);
   };
   img.src = getCardImagePath(card, imageSize);
+}
+
+// Kapazitätsprüfung für Reihen (verhindert zu viele Karten in kleinen Rows)
+export function canPlayToLane(state: GameState, player: Player, lane: 'public' | 'government'): boolean {
+  const cap = getLaneCapacity(lane);
+  const row = lane === 'public'
+    ? state.board[player]?.innen ?? []
+    : state.board[player]?.aussen ?? [];
+  return row.length < cap;
 }

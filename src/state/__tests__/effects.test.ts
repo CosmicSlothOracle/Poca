@@ -22,10 +22,6 @@ describe('effects engine', () => {
         1: { government: null, public: null },
         2: { government: null, public: null }
       },
-      instantSlot: {
-        1: null,
-        2: null
-      },
       discard: [],
       log: [],
       activeRefresh: { 1: 0, 2: 0 },

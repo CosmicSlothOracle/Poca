@@ -1,6 +1,7 @@
-import { GameState, Card, Player } from '../types/game';
+import { GameState, Card, Player, createDefaultEffectFlags } from '../types/game';
 import { PRESET_DECKS } from '../data/gameData';
 import { buildDeckFromEntries } from './gameUtils';
+import { emptyBoard } from '../state/board';
 import { GameLogger, gameLogger } from './gameLogger';
 
 // Enhanced AI opponent with logging integration
@@ -290,10 +291,7 @@ export class AITestRunner {
         } else {
           // Reset for next round
           gameState.passed = { 1: false, 2: false };
-          gameState.board = {
-            1: { innen: [], aussen: [] },
-            2: { innen: [], aussen: [] },
-          };
+          gameState.board = emptyBoard();
           gameState.traps = { 1: [], 2: [] };
 
           // Draw new hands
@@ -342,63 +340,19 @@ export class AITestRunner {
       decks: { 1: shuffledP1, 2: shuffledP2 },
       hands: { 1: p1Hand, 2: p2Hand },
       traps: { 1: [], 2: [] },
-      board: {
-        1: { innen: [], aussen: [] },
-        2: { innen: [], aussen: [] },
-      },
+      board: emptyBoard(),
       permanentSlots: {
         1: { government: null, public: null },
         2: { government: null, public: null },
       },
-      instantSlot: { 1: null, 2: null },
       discard: [],
       log: [],
       activeRefresh: { 1: 0, 2: 0 },
       roundsWon: { 1: 0, 2: 0 },
       gameWinner: null,
       effectFlags: {
-        1: {
-          freeInitiativeAvailable: false,
-          platformRefundAvailable: false,
-          platformRefundUsed: false,
-          ngoInitiativeDiscount: 0,
-          platformInitiativeDiscount: 0,
-          diplomatInfluenceTransferUsed: false,
-          influenceTransferBlocked: false,
-          nextGovPlus2: false,
-          nextGovernmentCardBonus: 0,
-          nextInitiativeDiscounted: false,
-          nextInitiativeMinus1: false,
-          nextInitiativeRefund: 0,
-          govRefundAvailable: false,
-          publicEffectDoubled: false,
-          cannotPlayInitiatives: false,
-          nextCardProtected: false,
-          platformAfterInitiativeBonus: false,
-          interventionEffectReduced: false,
-          opportunistActive: false,
-        },
-        2: {
-          freeInitiativeAvailable: false,
-          platformRefundAvailable: false,
-          platformRefundUsed: false,
-          ngoInitiativeDiscount: 0,
-          platformInitiativeDiscount: 0,
-          diplomatInfluenceTransferUsed: false,
-          influenceTransferBlocked: false,
-          nextGovPlus2: false,
-          nextGovernmentCardBonus: 0,
-          nextInitiativeDiscounted: false,
-          nextInitiativeMinus1: false,
-          nextInitiativeRefund: 0,
-          govRefundAvailable: false,
-          publicEffectDoubled: false,
-          cannotPlayInitiatives: false,
-          nextCardProtected: false,
-          platformAfterInitiativeBonus: false,
-          interventionEffectReduced: false,
-          opportunistActive: false,
-        }
+        1: createDefaultEffectFlags(),
+        2: createDefaultEffectFlags()
       }
     };
   }

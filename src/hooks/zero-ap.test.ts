@@ -12,9 +12,8 @@ describe('0-AP System', () => {
     decks: { 1: [], 2: [] },
     hands: { 1: [], 2: [] },
     traps: { 1: [], 2: [] },
-    board: { 1: { innen: [], aussen: [] }, 2: { innen: [], aussen: [] } },
+    board: { 1: { innen: [], aussen: [], sofort: [] }, 2: { innen: [], aussen: [], sofort: [] } },
     permanentSlots: { 1: { government: null, public: null }, 2: { government: null, public: null } },
-    instantSlot: { 1: null, 2: null },
     discard: [],
     log: [],
     activeRefresh: { 1: 0, 2: 0 },
@@ -60,8 +59,8 @@ describe('0-AP System', () => {
       const state = createMockState({
         hands: { 1: [govCard], 2: [] },
         board: {
-          1: { innen: [greta], aussen: [] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
 
@@ -93,8 +92,8 @@ describe('0-AP System', () => {
       const state = createMockState({
         hands: { 1: [govCard], 2: [] },
         board: {
-          1: { innen: [greta], aussen: fullLane },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: fullLane, sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
 
@@ -109,8 +108,8 @@ describe('0-AP System', () => {
       const state = createMockState({
         hands: { 1: [publicGovCard], 2: [] },
         board: {
-          1: { innen: [greta], aussen: [] }, // innen hat noch Platz (4/5)
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] }, // innen hat noch Platz (4/5)
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
 
@@ -126,8 +125,8 @@ describe('0-AP System', () => {
       const govCard = createMockCard('pol');
       const state = createMockState({
         board: {
-          1: { innen: [greta], aussen: [] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
 
@@ -169,8 +168,8 @@ describe('0-AP System', () => {
       const state = createMockState({
         hands: { 1: [deactivatedGovCard], 2: [] },
         board: {
-          1: { innen: [greta], aussen: [] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
 
@@ -186,8 +185,8 @@ describe('0-AP System', () => {
       const state = createMockState({
         hands: { 1: [govCard1, govCard2], 2: [] },
         board: {
-          1: { innen: [greta], aussen: [] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
 

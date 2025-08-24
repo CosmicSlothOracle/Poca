@@ -31,7 +31,7 @@ export function consumeShield(card: Card): boolean {
 // Deactivation management
 export function isDeactivated(card: Card): boolean {
   if (card.kind === 'pol') {
-    return (card as PoliticianCard).deactivated;
+    return (card as PoliticianCard).deactivated ?? false;
   }
   if (card.kind === 'spec') {
     return (card as SpecialCard).deactivated ?? false;

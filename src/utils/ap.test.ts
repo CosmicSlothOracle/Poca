@@ -11,9 +11,8 @@ describe('Central AP System', () => {
     decks: { 1: [], 2: [] },
     hands: { 1: [], 2: [] },
     traps: { 1: [], 2: [] },
-    board: { 1: { innen: [], aussen: [] }, 2: { innen: [], aussen: [] } },
+    board: { 1: { innen: [], aussen: [], sofort: [] }, 2: { innen: [], aussen: [], sofort: [] } },
     permanentSlots: { 1: { government: null, public: null }, 2: { government: null, public: null } },
-    instantSlot: { 1: null, 2: null },
     discard: [],
     log: [],
     activeRefresh: { 1: 0, 2: 0 },
@@ -72,8 +71,8 @@ describe('Central AP System', () => {
       const greta = createMockCard('pol', undefined, 'Greta Thunberg');
       const state = createMockState({
         board: {
-          1: { innen: [], aussen: [greta] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [], aussen: [greta], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
       const govCard = createMockCard('pol');
@@ -88,8 +87,8 @@ describe('Central AP System', () => {
       const greta = createMockCard('spec', 'Öffentlichkeitskarte', 'Greta Thunberg');
       const state = createMockState({
         board: {
-          1: { innen: [greta], aussen: [] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
       const initiative = createMockCard('spec', 'Sofort-Initiative');
@@ -104,8 +103,8 @@ describe('Central AP System', () => {
       const greta = createMockCard('spec', 'Öffentlichkeitskarte', 'Greta Thunberg');
       const state = createMockState({
         board: {
-          1: { innen: [greta], aussen: [] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         }
       });
       const govCard = createMockCard('pol');
@@ -183,8 +182,8 @@ describe('Central AP System', () => {
       const greta = createMockCard('spec', 'Öffentlichkeitskarte', 'Greta Thunberg');
       const state = createMockState({
         board: {
-          1: { innen: [greta], aussen: [] },
-          2: { innen: [], aussen: [] }
+          1: { innen: [greta], aussen: [], sofort: [] },
+          2: { innen: [], aussen: [], sofort: [] }
         },
         effectFlags: {
           1: { nextInitiativeMinus1: true } as any,

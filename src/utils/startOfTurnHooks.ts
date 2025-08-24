@@ -1,69 +1,51 @@
-import { GameState, Player, createDefaultEffectFlags, PoliticianCard } from '../types/game';
-import {
-  isMovement,
-  isPlatform,
-  hasLeadership,
-  isDiplomat
-} from './traits';
-import { CARD_TAGS } from '../constants/tags';
+import { GameState, Player } from '../types/game';
 
-/**
- * Applies start-of-turn hooks for a player using the new tag-based system
- *
- * Goals:
- * - Reset per-turn flags and refunds
- * - Set tag-based effect availability based on board state
- * - Use efficient tag lookups instead of hardcoded names
- */
+function other(p: Player): Player { return p === 1 ? 2 : 1; }
+
+export function startOfTurn(state: GameState, p: Player) {
+  // Standard-Refresh
+  state.actionPoints[p] = 2;
+  state.actionsUsed[p] = 0;
+
+  // Reset pro Runde
+  state.effectFlags[p].initiativeDiscount = 0;
+  state.effectFlags[p].initiativeRefund = 0;
+  state.effectFlags[p].govRefundAvailable = false;
+  state.effectFlags[p].markZuckerbergUsed = false;
+
+  // Cluster-3: temporäre Auren (namensbasiert, gelten für Sofort-Initiativen)
+  // +1 Einfluss bei Sofort-Initiativen (eigener Spieler):
+  const publicNames = state.board[p].innen.map(c => c.name);
+  const oppPublic   = state.board[other(p)].innen.map(c => c.name);
+
+  // Jennifer Doudna / Anthony Fauci  → +1 kumulativ pro Karte
+  const plusSources = ['Jennifer Doudna', 'Anthony Fauci'];
+  const plusCount   = publicNames.filter(n => plusSources.includes(n)).length;
+  state.effectFlags[p].initiativeInfluenceBonus = plusCount; // 0..2
+
+  // Noam Chomsky → Gegner bekommt -1 (wir speichern beim Besitzer)
+  state.effectFlags[p].initiativeInfluencePenaltyForOpponent =
+    publicNames.includes('Noam Chomsky') ? 1 : 0;
+
+  // Ai Weiwei → Bei Sofort-Initiative: +1 Karte +1 AP
+  state.effectFlags[p].initiativeOnPlayDraw1Ap1 =
+    publicNames.includes('Ai Weiwei');
+
+  // Bewegung (Greta/Malala) → Government-Refund einmalig
+  const movement = ['Greta Thunberg', 'Malala Yousafzai'];
+  if (publicNames.some(n => movement.includes(n))) {
+    state.effectFlags[p].govRefundAvailable = true;
+  }
+
+  // Fertig geloggt
+  state.log.push(`🔄 Start Zug P${p}: Auren gesetzt (+${plusCount} | Gegner-Penalty=${state.effectFlags[p].initiativeInfluencePenaltyForOpponent})`);
+}
+
+// Legacy compatibility
+export function applyStartOfTurnFlags(state: GameState, player: Player, log: (m: string) => void) {
+  startOfTurn(state, player);
+}
+
 export function applyStartOfTurnHooks(state: GameState, player: Player, log: (m: string) => void) {
-  const f = state.effectFlags[player];
-  const board = state.board[player];
-  const allCards = [...board.innen, ...board.aussen];
-
-  // Reset per-turn flags
-  f.govRefundAvailable = false;
-  f.nextInitiativeRefund = 0;
-  f.freeInitiativeAvailable = false;
-  f.diplomatInfluenceTransferUsed = false;
-  f.ngoInitiativeDiscount = 0;
-
-  // Reset action counters
-  state.actionsUsed[player] = 0;
-  f.nextInitiativeDiscounted = false;
-
-  // Tag-based effect detection (efficient O(n) scan)
-  const publicCards = allCards.filter(card => card.kind === 'spec' && (card as any).type === 'Öffentlichkeitskarte');
-  const governmentCards = allCards.filter(card => card.kind === 'pol');
-
-  // Movement cards: First government card → +1 AP refund
-  if (publicCards.some(isMovement)) {
-    f.govRefundAvailable = true;
-    log('🌱 Bewegung aktiv: Erste Regierungskarte dieses Zuges gibt +1 AP zurück.');
-  }
-
-  // Platform cards: Initiative discount (if implemented)
-  if (publicCards.some(isPlatform)) {
-    // f.platformInitiativeDiscount = 1; // Future: platform initiative discount
-    log('🛰️ Plattform aktiv: Initiative-Rabatt verfügbar.');
-  }
-
-  // Leadership cards: Free initiative available
-  if (governmentCards.some(hasLeadership)) {
-    f.freeInitiativeAvailable = true;
-    log('🎖️ Leadership aktiv: Kostenlose Initiative verfügbar.');
-  }
-
-  // Diplomat cards: Influence transfer available
-  if (governmentCards.some(isDiplomat)) {
-    log('🤝 Diplomat aktiv: Einfluss-Transfer verfügbar.');
-  }
-
-  // NGO cards: Initiative discount (if implemented)
-  const ngoCards = publicCards.filter(card =>
-    ['Bill Gates', 'George Soros'].includes(card.name)
-  );
-  if (ngoCards.length > 0) {
-    // f.ngoInitiativeDiscount = ngoCards.length; // Future: NGO initiative discount
-    log(`🏛️ NGO aktiv: ${ngoCards.length} Initiative-Rabatt(e) verfügbar.`);
-  }
+  applyStartOfTurnFlags(state, player, log);
 }

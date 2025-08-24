@@ -1,6 +1,15 @@
 import { Card, PoliticianCard, SpecialCard, GameState, Player, Lane, EffectQueue, EffectQueueItem, ActiveAbility, AbilitySelect } from '../types/game';
 import { adjustInfluence } from './cardUtils';
 
+export function getStrongestGovCardUid(state: GameState, player: Player): number | null {
+  const row = state.board[player].aussen as PoliticianCard[];
+  if (!row || row.length === 0) return null;
+  const alive = row.filter(c => !c.deactivated);
+  if (alive.length === 0) return null;
+  const sorted = [...alive].sort((a, b) => (b.influence ?? 0) - (a.influence ?? 0));
+  return sorted[0]?.uid ?? null;
+}
+
 // Effect application utilities
 export function tryApplyNegativeEffect(
   target: PoliticianCard,

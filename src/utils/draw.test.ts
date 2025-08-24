@@ -11,8 +11,8 @@ describe('Draw System', () => {
     actionsUsed: { 1: 0, 2: 0 },
     hands: { 1: [], 2: [] },
     decks: { 1: [], 2: [] },
-    board: { 1: { innen: [], aussen: [] }, 2: { innen: [], aussen: [] } },
-    instantSlot: { 1: null, 2: null },
+    board: { 1: { innen: [], aussen: [], sofort: [] }, 2: { innen: [], aussen: [], sofort: [] } },
+
     discard: [],
     log: [],
     activeRefresh: { 1: 0, 2: 0 },

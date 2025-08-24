@@ -1090,7 +1090,7 @@ export const PUBLIC_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Jennifer Doudna': {
     name: 'Jennifer Doudna',
     category: 'Öffentlichkeit',
-    gameEffect: 'Deine Initiativen mit "Wissenschaft" erhalten +1 Effekt.',
+    gameEffect: 'Deine Initiativen erhalten +1 Einfluss.',
     deckCost: 4,
     subcategories: ['Intelligenz'],
     nationality: 'US-Amerikanisch',
@@ -1165,7 +1165,7 @@ export const PUBLIC_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Noam Chomsky': {
     name: 'Noam Chomsky',
     category: 'Öffentlichkeit',
-    gameEffect: 'Gegner erhalten -1 Effekt bei "Militär"-Initiativen.',
+    gameEffect: 'Gegner erhalten -1 Einfluss bei Initiativen.',
     deckCost: 5,
     subcategories: ['Intelligenz'],
     nationality: 'US-Amerikanisch',
@@ -1300,7 +1300,7 @@ export const PUBLIC_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Ai Weiwei': {
     name: 'Ai Weiwei',
     category: 'Öffentlichkeit',
-    gameEffect: 'Bei einer Kunst/Kultur-Initiative: ziehe 1 Karte + 1 Aktionspunkt zurück.',
+    gameEffect: 'Bei einer Initiative: ziehe 1 Karte + 1 Aktionspunkt zurück.',
     deckCost: 5,
     subcategories: ['Intelligenz', 'Bewegung'],
     nationality: 'Chinesisch',
@@ -1330,7 +1330,7 @@ export const PUBLIC_CARD_DETAILS: Record<string, DetailedCardInfo> = {
   'Anthony Fauci': {
     name: 'Anthony Fauci',
     category: 'Öffentlichkeit',
-    gameEffect: 'Bei einer Gesundheits-Initiative: +1 Effekt.',
+    gameEffect: 'Bei einer Initiative: +1 Einfluss.',
     deckCost: 5,
     subcategories: ['Intelligenz', 'NGO/Think-Tank'],
     nationality: 'US-Amerikanisch',

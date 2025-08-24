@@ -25,9 +25,9 @@ Sofort-Initiatives wirken einmal und sind dann weg. Du spielst sie fuer Action P
 ### **Spin Doctor**
 
 - **Deckbuildingkosten:** 2 HP (mittel)
-- **Effect:** +2 Influence auf eine Government Cards (oder +1 bei Medien)
+- **Effekt:** +2 Einfluss auf eine Government Cards (oder +1 bei Medien)
 - **Wann spielen?** Um eine wichtige Government Cards zu staerken
-- **Example:** Vladimir Putin bekommt +2 Influence
+- **Example:** Vladimir Putin bekommt +2 Einfluss
 
 ### **Digitaler Wahlkampf**
 
@@ -60,21 +60,21 @@ Sofort-Initiatives wirken einmal und sind dann weg. Du spielst sie fuer Action P
 ### **Opportunist**
 
 - **Deckbuildingkosten:** 3 HP (groß)
-- **Effect:** Eine Government Cards -2 Influence, eine andere +2 Influence (Wahl gleicher Gameer)
-- **Wann spielen?** Um Influence umzuverteilen
+- **Effekt:** Eine Government Cards -2 Einfluss, eine andere +2 Einfluss (Wahl gleicher Gameer)
+- **Wann spielen?** Um Einfluss umzuverteilen
 - **Example:** Schwache Karte schwaechen, starke Karte staerken
 
 ### **Think-tank**
 
 - **Deckbuildingkosten:** 2 HP (mittel)
-- **Effect:** Ziehe 1 Karte, naechste Government Cards +2 Influence
+- **Effekt:** Ziehe 1 Karte, naechste Government Cards +2 Einfluss
 - **Wann spielen?** Fuer Kartenfluss und Regierungsstaerkung
-- **Example:** Du ziehst 1 Karte, Justin Trudeau bekommt +2 Influence
+- **Example:** Du ziehst 1 Karte, Justin Trudeau bekommt +2 Einfluss
 
 ### **Whataboutism**
 
 - **Deckbuildingkosten:** 2 HP (mittel)
-- **Effect:** Reaktiviere eine Karte; sie erhaelt -1 Influence
+- **Effekt:** Reaktiviere eine Karte; sie erhaelt -1 Einfluss
 - **Wann spielen?** Um deaktivierte Karten wieder zu nutzen
 - **Example:** Deaktivierte Government Cards ist wieder aktiv, aber schwaecher
 
@@ -109,9 +109,9 @@ Dauerhafte Initiatives bleiben auf dem Gamefeld und wirken laufend. Du spielst s
 
 - **Deckbuildingkosten:** 2 HP (mittel)
 - **Spezial-Slot:** Regierung
-- **Effect:** Kein Influenceverschieben erlaubt, Tier 2 Government Cards +1 Influence
+- **Effekt:** Kein Einflussverschieben erlaubt, Tier 2 Government Cards +1 Einfluss
 - **Wann spielen?** Mit vielen Tier 2 Government Cards
-- **Example:** Alle deine maechtigen Government Cards bekommen +1 Influence
+- **Example:** Alle deine maechtigen Government Cards bekommen +1 Einfluss
 
 ### **Algorithmischer Diskurs (Oeffentlichkeit)**
 
@@ -125,31 +125,31 @@ Dauerhafte Initiatives bleiben auf dem Gamefeld und wirken laufend. Du spielst s
 
 - **Deckbuildingkosten:** 2 HP (mittel)
 - **Spezial-Slot:** Regierung
-- **Effect:** Wenn du eine Oligarchen-Karte spielst: +1 Influence auf eine Government Cards
+- **Effekt:** Wenn du eine Oligarchen-Karte spielst: +1 Einfluss auf eine Government Cards
 - **Wann spielen?** Mit Oligarchen-Strategien
-- **Example:** Elon Musk spielen → Vladimir Putin +1 Influence
+- **Example:** Elon Musk spielen → Vladimir Putin +1 Einfluss
 
 ### **Zivilgesellschaft(Oeffentlichkeit)**
 
 - **Deckbuildingkosten:** 2 HP (mittel)
 - **Spezial-Slot:** Oeffentlichkeit
-- **Effect:** Bewegung-Karten +1 Influence, NGOs machen Initiatives billiger (-1 AP)
+- **Effekt:** Bewegung-Karten +1 Einfluss, NGOs machen Initiatives billiger (-1 AP)
 - **Wann spielen?** Mit Bewegungs- und NGO-Strategien
-- **Example:** Greta Thunberg +1 Influence, Bill Gates macht Initiatives billiger
+- **Example:** Greta Thunberg +1 Einfluss, Bill Gates macht Initiatives billiger
 
 ### **Milchglas Transparenz (Regierung)**
 
 - **Deckbuildingkosten:** 2 HP (mittel)
 - **Spezial-Slot:** Regierung
-- **Effect:** +1 Influence wenn keine NGO/Bewegung liegt
+- **Effekt:** +1 Einfluss wenn keine NGO/Bewegung liegt
 - **Wann spielen?** Gegen NGO/Bewegungs-Strategien
-- **Example:** Bonus-Influence wenn Gegner keine Aktivisten hat
+- **Example:** Bonus-Einfluss wenn Gegner keine Aktivisten hat
 
 ### **Alternative Fakten (Oeffentlichkeit)**
 
 - **Deckbuildingkosten:** 2 HP (mittel)
 - **Spezial-Slot:** Oeffentlichkeit
-- **Effect:** Gegner-Interventions -1 Wirkung (mindestens 0)
+- **Effekt:** Gegner-Interventions -1 Wirkung (mindestens 0)
 - **Wann spielen?** Gegen Interventions-Strategien
 - **Example:** "Fake News-Kampagne" ist schwaecher
 
@@ -157,17 +157,17 @@ Dauerhafte Initiatives bleiben auf dem Gamefeld und wirken laufend. Du spielst s
 
 - **Deckbuildingkosten:** 2 HP (mittel)
 - **Spezial-Slot:** Regierung
-- **Effect:** Tier 1 Government Cards +1 Influence, kein Influence verschieben erlaubt
+- **Effekt:** Tier 1 Government Cards +1 Einfluss, kein Einfluss verschieben erlaubt
 - **Wann spielen?** Mit vielen Tier 1 Government Cards
-- **Example:** Alle deine normalen Government Cards +1 Influence
+- **Example:** Alle deine normalen Government Cards +1 Einfluss
 
 ### **Konzernfreundlicher Algorithmus (Oeffentlichkeit)**
 
 - **Deckbuildingkosten:** 2 HP (mittel)
 - **Spezial-Slot:** Oeffentlichkeit
-- **Effect:** Bei Plattform-Karten: ziehe 1 Karte, Oligarchen +1 Influence
+- **Effekt:** Bei Plattform-Karten: ziehe 1 Karte, Oligarchen +1 Einfluss
 - **Wann spielen?** Mit Plattform + Oligarchen-Kombinationen
-- **Example:** Mark Zuckerberg + Elon Musk = Kartenziehen + Influence
+- **Example:** Mark Zuckerberg + Elon Musk = Kartenziehen + Einfluss
 
 ---
 
@@ -186,8 +186,8 @@ Interventions sind "Fallenkarten", die du verdeckt setzt. Sie loesen automatisch
 
 - **Deckbuildingkosten:** 3 HP
 - **Ausloeser:** Gegner spielt eine Tier 2 Government Cards
-- **Effect:** -2 Influence auf die Government Cards
-- **Example:** Gegner spielt Vladimir Putin → er verliert 2 Influence
+- **Effekt:** -2 Einfluss auf die Government Cards
+- **Example:** Gegner spielt Vladimir Putin → er verliert 2 Einfluss
 
 ### **Strategische Enthuellung**
 
@@ -242,15 +242,15 @@ Interventions sind "Fallenkarten", die du verdeckt setzt. Sie loesen automatisch
 
 - **Deckbuildingkosten:** 2 HP
 - **Ausloeser:** Gegner spielt 2 Government Cards in der Round
-- **Effect:** Beide Government Cards -1 Influence
-- **Example:** Gegner spielt 2 Government Cards → beide -1 Influence
+- **Effekt:** Beide Government Cards -1 Einfluss
+- **Example:** Gegner spielt 2 Government Cards → beide -1 Einfluss
 
 ### **Berater-Affaere**
 
 - **Deckbuildingkosten:** 2 HP
 - **Ausloeser:** Gegner spielt eine Tier 1 Government Cards
-- **Effect:** -2 Influence auf die Government Cards
-- **Example:** Gegner spielt schwache Regierung → sie verliert 2 Influence
+- **Effekt:** -2 Einfluss auf die Government Cards
+- **Example:** Gegner spielt schwache Regierung → sie verliert 2 Einfluss
 
 ### **Parlament geschlossen**
 
@@ -270,8 +270,8 @@ Interventions sind "Fallenkarten", die du verdeckt setzt. Sie loesen automatisch
 
 - **Deckbuildingkosten:** 2 HP
 - **Ausloeser:** Gegner spielt eine Diplomat-Karte
-- **Effect:** -3 Influence auf die Diplomat-Karte
-- **Example:** Gegner spielt Joschka Fischer → er verliert 3 Influence
+- **Effekt:** -3 Einfluss auf die Diplomat-Karte
+- **Example:** Gegner spielt Joschka Fischer → er verliert 3 Einfluss
 
 ### **Cancel Culture**
 
@@ -311,9 +311,9 @@ Interventions sind "Fallenkarten", die du verdeckt setzt. Sie loesen automatisch
 ### **Satire-Show**
 
 - **Deckbuildingkosten:** 2 HP
-- **Ausloeser:** Gegner hat mehr Influence als du
-- **Effect:** Eine Government Cards des Gegners -2 Influence
-- **Example:** Gegner hat mehr Influence → eine Government Cards -2
+- **Ausloeser:** Gegner hat mehr Einfluss als du
+- **Effekt:** Eine Government Cards des Gegners -2 Einfluss
+- **Example:** Gegner hat mehr Einfluss → eine Government Cards -2
 
 ---
 
@@ -330,7 +330,7 @@ Interventions sind "Fallenkarten", die du verdeckt setzt. Sie loesen automatisch
 
 **Example:** "Wirtschaftlicher Druck" + Elon Musk (Oligarch)
 
-- **Effect:** Jedes Mal wenn du Elon Musk spielst, bekommt eine Government Cards +1 Influence
+- **Effekt:** Jedes Mal wenn du Elon Musk spielst, bekommt eine Government Cards +1 Einfluss
 - **Warum funktioniert das?** Dauerhafte Boni fuer wiederholte Aktionen
 
 ### **Interventions + Timing**
@@ -357,5 +357,5 @@ Interventions sind "Fallenkarten", die du verdeckt setzt. Sie loesen automatisch
 #### **Influence-Strategie**
 
 - **Karten:** Dauerhafte Initiatives + Oligarchen + Government Cards
-- **Effect:** Dauerhaft steigender Influence
+- **Effekt:** Dauerhaft steigender Einfluss
 - **Example:** "Wirtschaftlicher Druck" + Elon Musk + Vladimir Putin

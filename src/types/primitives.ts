@@ -1,3 +1,3 @@
-export type UID = string & { readonly __brand: 'UID' };
+export type UID = number;
 
-export const asUID = (x: string): UID => x as UID;
+export const asUID = (x: number): UID => x as UID;

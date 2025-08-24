@@ -84,7 +84,7 @@ export const HandCardModal: React.FC<HandCardModalProps> = ({
       case 'permanent_public':
         return gameState.permanentSlots[currentPlayer].public !== null;
       case 'instant':
-        return gameState.instantSlot[currentPlayer] !== null;
+        return gameState.board[currentPlayer].sofort.length > 0;
       case 'intervention':
         return gameState.traps[currentPlayer].length >= 6;
       default:

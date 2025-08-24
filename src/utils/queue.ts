@@ -1,112 +1,183 @@
-import type { GameState } from '../types/game';
-import type { EffectEvent } from '../types/effects';
+import { GameState, Player, EffectEvent, PoliticianCard, Card } from '../types/game';
+import { getStrongestGovCardUid } from './effectUtils';
 
-export function enqueueEffect(state: GameState, ev: EffectEvent) {
-  if (!state._effectQueue) {
-    state._effectQueue = [];
-  }
-  state._effectQueue.push(ev);
+function other(p: Player): Player { return p === 1 ? 2 : 1; }
+function logPush(state: GameState, msg: string) { state.log.push(msg); }
+
+function strongestGov(state: GameState, p: Player): PoliticianCard | null {
+  const row = state.board[p].aussen as PoliticianCard[];
+  if (!row.length) return null;
+  return row.slice().sort((a,b) => (b.influence + (b.tempBuffs||0) - (b.tempDebuffs||0)) - (a.influence + (a.tempBuffs||0) - (a.tempDebuffs||0)))[0];
 }
 
-export function resolveQueue(state: GameState, log = (m: string) => {}) {
-  if (!state._effectQueue) {
-    state._effectQueue = [];
-    return;
+function publicNames(state: GameState, p: Player): string[] {
+  return state.board[p].innen.map(c => c.name);
+}
+
+function hasPublic(state: GameState, p: Player, name: string): boolean {
+  return publicNames(state, p).includes(name);
+}
+
+function findCardByUidOnBoard(state: GameState, uid: number): Card | null {
+  for (const p of [1,2] as const) {
+    for (const lane of ['innen','aussen','sofort'] as const) {
+      const arr = state.board[p][lane];
+      const hit = arr.find(c => c.uid === uid);
+      if (hit) return hit;
+    }
   }
+  return null;
+}
 
-  while (state._effectQueue.length > 0) {
-    const ev = state._effectQueue.shift() as EffectEvent;
+export function resolveQueue(state: GameState, events: EffectEvent[]) {
+  // Single pass FIFO
+  while (events.length) {
+    const ev = events.shift()!;
 
-    switch (ev.kind) {
-      case 'LOG':
-        log(ev.message);
-        break;
-
-      case 'SET_FLAG': {
-        const f = (state.effectFlags[ev.player] ??= {} as any);
-        (f as any)[ev.path] = ev.value;
-        break;
-      }
-
-      case 'DISCOUNT_NEXT_INITIATIVE': {
-        const f = (state.effectFlags[ev.player] ??= {} as any);
-        (f as any).nextInitiativeDiscounted = true;
-        log(`[RABATT] P${ev.player}: Naechste Initiative -1 AP.`);
-        break;
-      }
-
-      case 'REFUND_NEXT_INITIATIVE': {
-        const f = (state.effectFlags[ev.player] ??= {} as any);
-        const cur = (f as any).nextInitiativeRefund ?? 0;
-        const amount = ev.amount ?? 1;
-        (f as any).nextInitiativeRefund = cur + amount;
-        log(`[REFUND] P${ev.player}: Naechste Initiative +${amount} AP zurueck.`);
+    switch (ev.type) {
+      case 'LOG': {
+        logPush(state, ev.msg);
         break;
       }
 
       case 'ADD_AP': {
-        const oldAP = state.actionPoints[ev.player];
-        state.actionPoints[ev.player] = Math.max(
-          0,
-          oldAP + ev.amount
-        );
-        const newAP = state.actionPoints[ev.player];
-        log(`[AP] P${ev.player}: ${oldAP} -> ${newAP} (${ev.amount >= 0 ? '+' : ''}${ev.amount}).`);
+        const cur = state.actionPoints[ev.player];
+        const next = Math.max(0, Math.min(4, cur + ev.amount)); // Guidelines §15: AP-Cap: 4
+        state.actionPoints[ev.player] = next;
+        logPush(state, `⚡ AP P${ev.player}: ${cur} → ${next}`);
         break;
       }
 
       case 'DRAW_CARDS': {
-        const deck = state.decks[ev.player];
-        const hand = state.hands[ev.player];
-        for (let i = 0; i < ev.count; i++) {
-          if (!deck.length) {
-            log(`🪙 P${ev.player}: Deck leer – keine Karte nachgezogen.`);
-            break;
+        for (let i = 0; i < ev.amount; i++) {
+          const top = state.decks[ev.player].shift();
+          if (top) {
+            state.hands[ev.player].push(top);
+            logPush(state, `🃏 P${ev.player} zieht: ${top.name}`);
           }
-          const c = deck.pop()!;
-          hand.push(c);
-          log(`🃏 P${ev.player} zieht ${c.name}.`);
         }
         break;
       }
 
       case 'DISCARD_RANDOM_FROM_HAND': {
         const hand = state.hands[ev.player];
-        if (hand.length === 0) break;
-        const idx = Math.floor(Math.random() * hand.length);
-        const [c] = hand.splice(idx, 1);
-        state.discard.push(c);
-        log(`🗑️ P${ev.player}: Zufällige Handkarte deaktiviert → ${c.name}.`);
+        for (let i = 0; i < ev.amount && hand.length > 0; i++) {
+          const idx = Math.floor(Math.random() * hand.length);
+          const [card] = hand.splice(idx, 1);
+          state.discard.push(card);
+          logPush(state, `🗑️ P${ev.player} wirft zufällig ab: ${card.name}`);
+        }
         break;
       }
 
-      case 'ADJUST_INFLUENCE': {
-        const target = ev.targetCard as any;
-        if (!target || ev.delta === 0) break;
+      case 'DEACTIVATE_RANDOM_HAND': {
+        // Deaktivieren von Handkarten (nicht entfernen)
+        const hand = state.hands[ev.player];
+        for (let i = 0; i < ev.amount && hand.length > 0; i++) {
+          const idx = Math.floor(Math.random() * hand.length);
+          const card = hand[idx];
+          (card as any).deactivated = true;
+          logPush(state, `⛔ P${ev.player} Handkarte deaktiviert: ${card.name}`);
+        }
+        break;
+      }
 
-        const before = target.influence ?? 0;
-        target.influence = Math.max(0, before + ev.delta);
-        log(`${ev.delta > 0 ? '⬆️' : '⬇️'} ${target.name}: ${before}→${target.influence} (${ev.source}).`);
+      case 'SET_DISCOUNT': {
+        const prev = state.effectFlags[ev.player].initiativeDiscount || 0;
+        const next = Math.max(0, Math.min(2, prev + ev.amount));
+        state.effectFlags[ev.player].initiativeDiscount = next;
+        logPush(state, `🏷️ Discount P${ev.player}: ${prev} → ${next}`);
+        break;
+      }
 
-        // Opportunist-Mirror (nur bei Boni, kein Loop)
-        if (ev.delta > 0 && state.effectFlags?.[ev.player]?.opportunistActive) {
-          const otherPlayer = ev.player === 1 ? 2 : 1;
-          const otherGov = state.board[otherPlayer].aussen.filter(c => c.kind === 'pol' && !(c as any).deactivated);
-          if (otherGov.length > 0) {
-            const mirrorTarget = otherGov.reduce((a, b) => ((a as any).influence >= (b as any).influence ? a : b));
-            const mirrorBefore = (mirrorTarget as any).influence ?? 0;
-            (mirrorTarget as any).influence = Math.max(0, mirrorBefore + ev.delta);
-            log(`🪞 Opportunist: Gegner spiegelt +${ev.delta} Einfluss (${mirrorTarget.name}: ${mirrorBefore}→${(mirrorTarget as any).influence}).`);
+      case 'REFUND_NEXT_INITIATIVE': {
+        const prev = state.effectFlags[ev.player].initiativeRefund || 0;
+        const next = Math.max(0, Math.min(2, prev + ev.amount));
+        state.effectFlags[ev.player].initiativeRefund = next;
+        logPush(state, `↩️ Refund-Pool P${ev.player}: ${prev} → ${next}`);
+        break;
+      }
+
+      case 'GRANT_SHIELD': {
+        if (!state.shields) state.shields = new Set();
+        state.shields.add(ev.targetUid);
+        logPush(state, `🛡️ Schutz gewährt: UID ${ev.targetUid}`);
+        break;
+      }
+
+      case 'DEACTIVATE_CARD': {
+        const card = findCardByUidOnBoard(state, ev.targetUid);
+        if (card) {
+          (card as any).deactivated = true;
+          logPush(state, `⛔ Karte deaktiviert: ${card.name}`);
+        }
+        break;
+      }
+
+      case 'BUFF_STRONGEST_GOV':
+      case 'ADJUST_INFLUENCE': { // Alias auf BUFF_STRONGEST_GOV
+        const player = ev.player;
+        const amount = (ev as any).amount;
+        const tgt = strongestGov(state, player);
+        if (tgt) {
+          if (amount >= 0) {
+            (tgt as PoliticianCard).tempBuffs = ((tgt as PoliticianCard).tempBuffs || 0) + amount;
+          } else {
+            (tgt as PoliticianCard).tempDebuffs = ((tgt as PoliticianCard).tempDebuffs || 0) + Math.abs(amount);
+          }
+          logPush(state, `📈 Einfluss P${player} stärkste Regierung ${amount >= 0 ? '+' : ''}${amount} (${tgt.name})`);
+
+          // Opportunist-Spiegelung (falls aktiv beim Gegner)
+          if (state.effectFlags[other(player)]?.opportunistActive && amount > 0) {
+            const mirror = { type: 'BUFF_STRONGEST_GOV', player: other(player), amount } as EffectEvent;
+            events.unshift(mirror);
+            logPush(state, `🪞 Opportunist: P${other(player)} spiegelt +${amount}`);
+          }
+        }
+        break;
+      }
+
+      case 'INITIATIVE_ACTIVATED': {
+        const p = ev.player;
+        const opp = other(p);
+
+        // Cluster-3: temporäre Auren für Sofort-Initiativen (namenbasiert, keine Tags)
+        let delta = 0;
+        delta += state.effectFlags[p].initiativeInfluenceBonus || 0;                 // z.B. +1 (Doudna/Fauci)
+        delta -= state.effectFlags[opp].initiativeInfluencePenaltyForOpponent || 0;  // z.B. -1 (Chomsky)
+
+        if (delta !== 0) {
+          events.unshift({ type: 'BUFF_STRONGEST_GOV', player: p, amount: delta });
+          logPush(state, `🔥 Initiative-Aura: Einfluss Δ=${delta} auf stärkste Regierung von P${p}`);
+        }
+
+        if (state.effectFlags[p].initiativeOnPlayDraw1Ap1) {
+          events.unshift({ type: 'ADD_AP', player: p, amount: 1 });
+          events.unshift({ type: 'DRAW_CARDS', player: p, amount: 1 });
+          logPush(state, `🎨 Ai Weiwei: +1 Karte & +1 AP bei Sofort-Initiative`);
+        }
+
+        // Plattform: Einmal pro Runde nach Initiative +1 AP, wenn Mark Zuckerberg liegt und nicht verbraucht
+        if (hasPublic(state, p, 'Mark Zuckerberg') && !state.effectFlags[p].markZuckerbergUsed) {
+          state.effectFlags[p].markZuckerbergUsed = true;
+          events.unshift({ type: 'ADD_AP', player: p, amount: 1 });
+          logPush(state, `🖥️ Plattform-Bonus (Zuckerberg): +1 AP (einmal pro Runde)`);
+        }
+        break;
+      }
+
+      case 'ADJUST_STRONGEST_GOV': {
+        const uid = getStrongestGovCardUid(state, ev.player);
+        if (uid != null) {
+          const row = state.board[ev.player].aussen as PoliticianCard[];
+          const target = row.find(c => c.uid === uid) as PoliticianCard | undefined;
+          if (target) {
+            target.tempBuffs = (target.tempBuffs ?? 0) + ev.amount;
+            logPush(state, `🔺 stärkste Regierung ${target.name}: ${ev.amount >= 0 ? '+' : ''}${ev.amount} Einfluss`);
           }
         }
         break;
       }
     }
-  }
-
-  // 🧹 Queue ist leer: Falls Zug-Ende gewünscht, automatisch ausführen
-  if (state.isEndingTurn) {
-    log('✅ Effekte fertig – Zugwechsel wird durchgeführt.');
-    // Flag bleibt gesetzt, damit die aufrufende Funktion weiß, dass der Zug beendet werden soll
   }
 }

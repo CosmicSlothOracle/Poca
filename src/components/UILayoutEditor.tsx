@@ -1,8 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { exportLayoutAsGameFormat } from "../utils/uiLayoutConverter";
-
-// UI Layout Editor für das Mandate Game
-// Drag, snap-to-grid, resize handles, background image, JSON import/export, PNG export
+import React, { useEffect, useRef, useState } from "react";
+import { LAYOUT } from "../ui/layout";
 
 interface Slot {
   id: string;
@@ -14,6 +11,12 @@ interface Slot {
   height: number;
   color: string;
   locked: boolean;
+  clickZone?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 interface CanvasConfig {
@@ -33,1007 +36,823 @@ const typeColor: Record<string, string> = {
   public: "#60a5fa",
   dauerhaft: "#f59e0b",
   sofort: "#f472b6",
+  hand: "#a78bfa",
   other: "#a78bfa",
 };
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-// Default layout based on the new ui-layout.json
-const defaultLayout: LayoutData = {
-  canvas: {
-    width: 1920,
-    height: 1080,
-    grid: 13
-  },
-  slots: [
-    {
-      id: "1",
-      name: "government-1",
-      type: "government",
-      x: 16,
-      y: 304,
-      width: 256,
-      height: 256,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "2",
-      name: "government-2",
-      type: "government",
-      x: 288,
-      y: 304,
-      width: 256,
-      height: 256,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "3",
-      name: "government-3",
-      type: "government",
-      x: 560,
-      y: 304,
-      width: 256,
-      height: 256,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "4",
-      name: "government-4",
-      type: "government",
-      x: 832,
-      y: 304,
-      width: 256,
-      height: 256,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "5",
-      name: "government-5",
-      type: "government",
-      x: 1104,
-      y: 304,
-      width: 256,
-      height: 256,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "6",
-      name: "public-1",
-      type: "public",
-      x: 16,
-      y: 560,
-      width: 256,
-      height: 256,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "7",
-      name: "public-2",
-      type: "public",
-      x: 288,
-      y: 560,
-      width: 256,
-      height: 256,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "8",
-      name: "public-3",
-      type: "public",
-      x: 560,
-      y: 560,
-      width: 256,
-      height: 256,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "9",
-      name: "public-4",
-      type: "public",
-      x: 832,
-      y: 560,
-      width: 256,
-      height: 256,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "10",
-      name: "public-5",
-      type: "public",
-      x: 1104,
-      y: 560,
-      width: 256,
-      height: 256,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "11",
-      name: "dauerhaft-government",
-      type: "dauerhaft",
-      x: 1360,
-      y: 304,
-      width: 256,
-      height: 256,
-      color: "#f59e0b",
-      locked: false
-    },
-    {
-      id: "12",
-      name: "dauerhaft-public",
-      type: "dauerhaft",
-      x: 1360,
-      y: 560,
-      width: 256,
-      height: 256,
-      color: "#f59e0b",
-      locked: false
-    },
-    {
-      id: "13",
-      name: "sofort",
-      type: "sofort",
-      x: 1352,
-      y: 824,
-      width: 256,
-      height: 256,
-      color: "#f472b6",
-      locked: false
-    },
-    {
-      id: "14",
-      name: "opponent-government-1",
-      type: "government",
-      x: 24,
-      y: 168,
-      width: 128,
-      height: 128,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "15",
-      name: "opponent-government-2",
-      type: "government",
-      x: 164,
-      y: 168,
-      width: 128,
-      height: 128,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "16",
-      name: "opponent-government-3",
-      type: "government",
-      x: 304,
-      y: 168,
-      width: 128,
-      height: 128,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "17",
-      name: "opponent-government-4",
-      type: "government",
-      x: 444,
-      y: 168,
-      width: 128,
-      height: 128,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "18",
-      name: "opponent-government-5",
-      type: "government",
-      x: 584,
-      y: 168,
-      width: 128,
-      height: 128,
-      color: "#4ade80",
-      locked: false
-    },
-    {
-      id: "19",
-      name: "opponent-public-1",
-      type: "public",
-      x: 24,
-      y: 24,
-      width: 128,
-      height: 128,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "20",
-      name: "opponent-public-2",
-      type: "public",
-      x: 164,
-      y: 24,
-      width: 128,
-      height: 128,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "21",
-      name: "opponent-public-3",
-      type: "public",
-      x: 304,
-      y: 24,
-      width: 128,
-      height: 128,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "22",
-      name: "opponent-public-4",
-      type: "public",
-      x: 444,
-      y: 24,
-      width: 128,
-      height: 128,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "23",
-      name: "opponent-public-5",
-      type: "public",
-      x: 584,
-      y: 24,
-      width: 128,
-      height: 128,
-      color: "#60a5fa",
-      locked: false
-    },
-    {
-      id: "24",
-      name: "opponent-dauerhaft-public",
-      type: "dauerhaft",
-      x: 715,
-      y: 26,
-      width: 128,
-      height: 128,
-      color: "#f59e0b",
-      locked: false
-    },
-    {
-      id: "25",
-      name: "opponent-dauerhaft-government",
-      type: "dauerhaft",
-      x: 715,
-      y: 169,
-      width: 128,
-      height: 128,
-      color: "#f59e0b",
-      locked: false
-    },
-    {
-      id: "26",
-      name: "opponent-sofort",
-      type: "sofort",
-      x: 845,
-      y: 26,
-      width: 256,
-      height: 256,
-      color: "#f472b6",
-      locked: false
-    },
-    {
-      id: "27",
-      name: "hand-player",
-      type: "other",
-      x: 0,
-      y: 824,
-      width: 1339,
-      height: 256,
-      color: "#a78bfa",
-      locked: false
-    },
-    {
-      id: "28",
-      name: "hand-opponent",
-      type: "other",
-      x: 1655,
-      y: 0,
-      width: 265,
-      height: 1080,
-      color: "#a78bfa",
-      locked: false
-    }
-  ]
-};
+// Convert current LAYOUT to editor format
+const convertLayoutToEditorFormat = (): LayoutData => {
+  const slots: Slot[] = [];
 
-export default function UILayoutEditor() {
-  const [canvasW, setCanvasW] = useState(defaultLayout.canvas.width);
-  const [canvasH, setCanvasH] = useState(defaultLayout.canvas.height);
-  const [grid, setGrid] = useState(defaultLayout.canvas.grid);
-  const [bgSrc, setBgSrc] = useState<string | null>(null);
-  const [slots, setSlots] = useState<Slot[]>(defaultLayout.slots);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showGrid, setShowGrid] = useState(true);
-  const [showLabels, setShowLabels] = useState(true);
-  const [zoom, setZoom] = useState(0.5); // Zoom-Faktor für bessere Darstellung
+  LAYOUT.zones.forEach(zone => {
+    if (zone.layout?.type === 'fixedSlots') {
+      const [x, y, w, h] = zone.rectPx;
+      const lay = zone.layout as any;
+      const slotCount = lay.slots;
+      const slotSize = lay.slotSize;
+      const gap = lay.gap;
+      const direction = lay.direction ?? 'row';
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef<{ mode: string | null; id?: string; dx?: number; dy?: number; dir?: string; start?: any }>({ mode: null });
+      for (let i = 0; i < slotCount; i++) {
+        let slotX = x;
+        let slotY = y;
 
-  const snap = (v: number) => Math.round(v / grid) * grid;
-
-  // Berechne die skalierte Canvas-Größe
-  const scaledCanvasW = canvasW * zoom;
-  const scaledCanvasH = canvasH * zoom;
-
-  const addSlot = (type: string) => {
-    const count = slots.filter((s) => s.type === type).length + 1;
-    const s: Slot = {
-      id: uid(),
-      name: `${type}-${count}`,
-      type,
-      x: snap(32 + slots.length * 12),
-      y: snap(32 + slots.length * 12),
-      width: snap(180),
-      height: snap(250),
-      color: typeColor[type] || typeColor.other,
-      locked: false,
-    };
-    setSlots((p) => [...p, s]);
-    setSelectedId(s.id);
-  };
-
-  const onStagePointerDown = (e: React.PointerEvent) => {
-    if (e.target === stageRef.current) setSelectedId(null);
-  };
-
-  // --- Drag & Resize mechanics ---
-  const getStageOffset = () => {
-    if (!stageRef.current) return { left: 0, top: 0 };
-    const rect = stageRef.current.getBoundingClientRect();
-    return { left: rect.left, top: rect.top };
-  };
-
-  const beginDrag = (id: string, e: React.PointerEvent) => {
-    const s = slots.find((x) => x.id === id);
-    if (!s || s.locked) return;
-    const { left, top } = getStageOffset();
-    stateRef.current = {
-      mode: "drag",
-      id,
-      dx: e.clientX - left - s.x * zoom,
-      dy: e.clientY - top - s.y * zoom,
-    };
-  };
-
-  const beginResize = (id: string, dir: string, e: React.PointerEvent) => {
-    const s = slots.find((x) => x.id === id);
-    if (!s || s.locked) return;
-    stateRef.current = {
-      mode: "resize",
-      id,
-      dir,
-      start: { x: s.x, y: s.y, w: s.width, h: s.height, cx: e.clientX, cy: e.clientY },
-    };
-  };
-
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const st = stateRef.current;
-      if (!st.mode) return;
-      const { left, top } = getStageOffset();
-      if (st.mode === "drag" && st.id) {
-        const nx = snap((e.clientX - left - (st.dx || 0)) / zoom);
-        const ny = snap((e.clientY - top - (st.dy || 0)) / zoom);
-        setSlots((p) => p.map((x) => (x.id === st.id ? { ...x, x: Math.max(0, Math.min(nx, canvasW - x.width)), y: Math.max(0, Math.min(ny, canvasH - x.height)) } : x)));
-      } else if (st.mode === "resize" && st.id && st.start) {
-        const s = slots.find((x) => x.id === st.id);
-        if (!s) return;
-        const dx = (e.clientX - st.start.cx) / zoom;
-        const dy = (e.clientY - st.start.cy) / zoom;
-        let x = st.start.x;
-        let y = st.start.y;
-        let w = st.start.w;
-        let h = st.start.h;
-        const dir = st.dir || "";
-        if (dir.includes("e")) w = snap(Math.max(10, st.start.w + dx));
-        if (dir.includes("s")) h = snap(Math.max(10, st.start.h + dy));
-        if (dir.includes("w")) {
-          const nw = snap(Math.max(10, st.start.w - dx));
-          x = snap(st.start.x + (st.start.w - nw));
-          w = nw;
+        if (direction === 'horizontal') {
+          slotX = x + i * (slotSize[0] + gap);
+        } else if (direction === 'vertical') {
+          slotY = y + i * (slotSize[1] + gap);
+        } else if (direction === 'vertical-reverse') {
+          slotY = y + (slotCount - 1 - i) * (slotSize[1] + gap);
         }
-        if (dir.includes("n")) {
-          const nh = snap(Math.max(10, st.start.h - dy));
-          y = snap(st.start.y + (st.start.h - nh));
-          h = nh;
-        }
-        x = Math.max(0, Math.min(x, canvasW - 10));
-        y = Math.max(0, Math.min(y, canvasH - 10));
-        w = Math.max(10, Math.min(w, canvasW - x));
-        h = Math.max(10, Math.min(h, canvasH - y));
-        setSlots((p) => p.map((it) => (it.id === st.id ? { ...it, x, y, width: w, height: h } : it)));
-      }
-    };
-    const onUp = () => (stateRef.current = { mode: null });
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-  }, [slots, canvasW, canvasH, grid, zoom]);
 
-  // --- Hotkeys ---
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!selectedId) return;
-      if (e.key === "Delete" || e.key === "Backspace") {
-        setSlots((p) => p.filter((s) => s.id !== selectedId));
-        setSelectedId(null);
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        setSlots((p) => {
-          const s = p.find((x) => x.id === selectedId);
-          if (!s) return p;
-          const c = { ...s, id: uid(), x: snap(s.x + grid), y: snap(s.y + grid), name: s.name + " copy" };
-          return [...p, c];
+        const slotId = `${zone.id}-${i}`;
+        const slotType = getSlotType(zone.id);
+
+        slots.push({
+          id: slotId,
+          name: slotId,
+          type: slotType,
+          x: slotX,
+          y: slotY,
+          width: slotSize[0],
+          height: slotSize[1],
+          color: typeColor[slotType],
+          locked: false,
+          clickZone: {
+            x: slotX,
+            y: slotY,
+            width: slotSize[0],
+            height: slotSize[1]
+          }
         });
       }
-      if (e.key.toLowerCase() === "l") {
-        setSlots((p) => p.map((s) => (s.id === selectedId ? { ...s, locked: !s.locked } : s)));
+    } else if (zone.layout?.type === 'singleSlot') {
+      const [x, y, w, h] = zone.rectPx;
+      const slotType = getSlotType(zone.id);
+
+      slots.push({
+        id: zone.id,
+        name: zone.id,
+        type: slotType,
+        x: x,
+        y: y,
+        width: w,
+        height: h,
+        color: typeColor[slotType],
+        locked: false,
+        clickZone: {
+          x: x,
+          y: y,
+          width: w,
+          height: h
+        }
+      });
+    }
+  });
+
+  return {
+    canvas: {
+      width: 1920,
+      height: 1080,
+      grid: 13
+    },
+    slots
+  };
+};
+
+const getSlotType = (zoneId: string): string => {
+  if (zoneId.includes('government')) return 'government';
+  if (zoneId.includes('public')) return 'public';
+  if (zoneId.includes('permanent')) return 'dauerhaft';
+  if (zoneId.includes('instant')) return 'sofort';
+  if (zoneId.includes('interventions')) return 'sofort';
+  if (zoneId.includes('hand')) return 'hand';
+  return 'other';
+};
+
+const getTypeColor = (type: string): string => {
+  return typeColor[type] || typeColor.other;
+};
+
+const defaultLayout: LayoutData = convertLayoutToEditorFormat();
+
+const UILayoutEditor: React.FC = () => {
+  const [layout, setLayout] = useState<LayoutData>(defaultLayout);
+  const [selected, setSelected] = useState<Slot | null>(null);
+  const [showClickZone, setShowClickZone] = useState(false);
+  const [showGrid, setShowGrid] = useState(true);
+  const [editMode, setEditMode] = useState<'position' | 'clickzone'>('position');
+  const [zoom, setZoom] = useState(0.5);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+
+  const addSlot = (type: string) => {
+    const newSlot: Slot = {
+      id: uid(),
+      name: `New ${type}`,
+      type,
+      x: 100,
+      y: 100,
+      width: 256,
+      height: 256,
+      color: typeColor[type],
+      locked: false,
+      clickZone: {
+        x: 100,
+        y: 100,
+        width: 256,
+        height: 256
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, grid]);
+    setLayout(prev => ({ ...prev, slots: [...prev.slots, newSlot] }));
+  };
 
-  // --- Import/Export ---
-  const exportJSON = () => {
-    const data: LayoutData = { canvas: { width: canvasW, height: canvasH, grid }, background: bgSrc ? { src: bgSrc } : undefined, slots };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "ui-layout.json";
-    a.click();
+  const deleteSlot = (id: string) => {
+    setLayout(prev => ({ ...prev, slots: prev.slots.filter(s => s.id !== id) }));
+    if (selected?.id === id) setSelected(null);
+  };
+
+  const updateSlot = (id: string, updates: Partial<Slot>) => {
+    setLayout(prev => ({
+      ...prev,
+      slots: prev.slots.map(s => s.id === id ? { ...s, ...updates } : s)
+    }));
+  };
+
+  const exportGameFormat = () => {
+    const zones: any[] = [];
+    const slotGroups: Record<string, Slot[]> = {};
+
+    // Group slots by their base ID
+    layout.slots.forEach(slot => {
+      const baseId = slot.id.split('-')[0];
+      if (!slotGroups[baseId]) slotGroups[baseId] = [];
+      slotGroups[baseId].push(slot);
+    });
+
+    // Convert groups to zones
+    Object.entries(slotGroups).forEach(([baseId, slots]) => {
+      if (slots.length === 1) {
+        // Single slot
+        const slot = slots[0];
+        zones.push({
+          id: baseId,
+          rectPx: [slot.x, slot.y, slot.width, slot.height],
+          layout: {
+            type: "singleSlot",
+            slotSize: [slot.width, slot.height]
+          },
+          z: 10
+        });
+      } else {
+        // Multiple slots - determine layout type
+        const firstSlot = slots[0];
+        const isHorizontal = slots.every(s => s.y === firstSlot.y);
+        const isVertical = slots.every(s => s.x === firstSlot.x);
+
+        if (isHorizontal) {
+          const minX = Math.min(...slots.map(s => s.x));
+          const maxX = Math.max(...slots.map(s => s.x + s.width));
+          const y = firstSlot.y;
+          const width = maxX - minX;
+          const height = firstSlot.height;
+
+          zones.push({
+            id: baseId,
+            rectPx: [minX, y, width, height],
+            layout: {
+              type: "fixedSlots",
+              slots: slots.length,
+              slotSize: [firstSlot.width, firstSlot.height],
+              gap: slots.length > 1 ? slots[1].x - (slots[0].x + slots[0].width) : 8,
+              alignment: "left",
+              direction: "horizontal"
+            },
+            z: 10
+          });
+        } else if (isVertical) {
+          const minY = Math.min(...slots.map(s => s.y));
+          const maxY = Math.max(...slots.map(s => s.y + s.height));
+          const x = firstSlot.x;
+          const width = firstSlot.width;
+          const height = maxY - minY;
+
+          zones.push({
+            id: baseId,
+            rectPx: [x, minY, width, height],
+            layout: {
+              type: "fixedSlots",
+              slots: slots.length,
+              slotSize: [firstSlot.width, firstSlot.height],
+              gap: slots.length > 1 ? slots[1].y - (slots[0].y + slots[0].height) : 8,
+              alignment: "left",
+              direction: "vertical"
+            },
+            z: 10
+          });
+        }
+      }
+    });
+
+    const exportData = {
+      version: 4,
+      canvas: {
+        width: layout.canvas.width,
+        height: layout.canvas.height,
+        aspect: "16:9"
+      },
+      scaling: {
+        mode: "fit",
+        letterbox: true
+      },
+      zones
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ui_layout_1920x1080.json';
+    link.click();
     URL.revokeObjectURL(url);
   };
 
-  const importJSON = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result)) as LayoutData;
-        if (parsed.canvas) {
-          setCanvasW(parsed.canvas.width || 1920);
-          setCanvasH(parsed.canvas.height || 1080);
-          setGrid(parsed.canvas.grid || 16);
-        }
-        setSlots(Array.isArray(parsed.slots) ? parsed.slots : []);
-        setBgSrc(parsed.background?.src || null);
-      } catch (e) {
-        alert("Invalid JSON");
-      }
-    };
-    reader.readAsText(file);
-  };
-
   const exportPNG = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = canvasW;
-    canvas.height = canvasH;
-    const ctx = canvas.getContext("2d");
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Create a temporary canvas for export
+    const exportCanvas = document.createElement('canvas');
+    const ctx = exportCanvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    exportCanvas.width = layout.canvas.width;
+    exportCanvas.height = layout.canvas.height;
 
-    const drawSlots = () => {
-      // grid (optional): light lines
-      if (showGrid) {
-        ctx.strokeStyle = "#e5e7eb";
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= canvasW; x += grid) {
-          ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, canvasH); ctx.stroke();
-        }
-        for (let y = 0; y <= canvasH; y += grid) {
-          ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(canvasW, y + 0.5); ctx.stroke();
-        }
+    // Draw background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+    // Draw grid
+    if (showGrid) {
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= exportCanvas.width; x += layout.canvas.grid) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, exportCanvas.height);
+        ctx.stroke();
       }
-      slots.forEach((s) => {
-        ctx.strokeStyle = s.color || typeColor[s.type] || "#111827";
-        ctx.lineWidth = 2;
-        ctx.setLineDash(s.locked ? [6, 6] : [4, 2]);
-        ctx.strokeRect(s.x + 1, s.y + 1, s.width - 2, s.height - 2);
-        ctx.setLineDash([]);
-        if (showLabels) {
-          ctx.fillStyle = "#111827";
-          ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto";
-          ctx.fillText(`${s.name} (${s.type})`, s.x + 6, s.y + 16);
-        }
-      });
-      const url = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = url; a.download = "ui-layout.png"; a.click();
-    };
+      for (let y = 0; y <= exportCanvas.height; y += layout.canvas.grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(exportCanvas.width, y);
+        ctx.stroke();
+      }
+    }
 
-    if (bgSrc) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvasW, canvasH);
-        drawSlots();
-      };
-      img.src = bgSrc;
+    // Draw slots
+    layout.slots.forEach(slot => {
+      // Draw slot rectangle
+      ctx.fillStyle = slot.color + '40'; // Add transparency
+      ctx.fillRect(slot.x, slot.y, slot.width, slot.height);
+      ctx.strokeStyle = slot.color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(slot.x, slot.y, slot.width, slot.height);
+
+      // Draw slot name
+      ctx.fillStyle = '#000000';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(slot.name, slot.x + slot.width / 2, slot.y + slot.height / 2);
+
+      // Draw click zone if different from slot
+      if (slot.clickZone && (slot.clickZone.x !== slot.x || slot.clickZone.y !== slot.y ||
+          slot.clickZone.width !== slot.width || slot.clickZone.height !== slot.height)) {
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(slot.clickZone.x, slot.clickZone.y, slot.clickZone.width, slot.clickZone.height);
+        ctx.setLineDash([]);
+      }
+    });
+
+    // Export as PNG
+    const dataURL = exportCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = dataURL;
+    link.download = 'ui_layout_export.png';
+    link.click();
+  };
+
+  const importBackground = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const src = e.target?.result as string;
+          setLayout(prev => ({
+            ...prev,
+            background: { src }
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const exportJSON = () => {
+    const dataStr = JSON.stringify(layout, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ui_layout_editor.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importJSON = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importedLayout = JSON.parse(e.target?.result as string);
+            setLayout(importedLayout);
+          } catch (error) {
+            alert('Error importing JSON file: ' + error);
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+
+    const clickedSlot = layout.slots.find(slot =>
+      x >= slot.x && x <= slot.x + slot.width &&
+      y >= slot.y && y <= slot.y + slot.height
+    );
+
+    if (clickedSlot) {
+      setSelected(clickedSlot);
+      isDragging.current = true;
+      dragStart.current = { x: x - clickedSlot.x, y: y - clickedSlot.y };
     } else {
-      drawSlots();
+      setSelected(null);
     }
   };
 
-  const handleBgUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => setBgSrc(String(reader.result));
-    reader.readAsDataURL(file);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !selected) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+
+    const newX = Math.round((x - dragStart.current.x) / layout.canvas.grid) * layout.canvas.grid;
+    const newY = Math.round((y - dragStart.current.y) / layout.canvas.grid) * layout.canvas.grid;
+
+    if (editMode === 'position') {
+      updateSlot(selected.id, { x: newX, y: newY });
+      if (selected.clickZone) {
+        updateSlot(selected.id, {
+          clickZone: { ...selected.clickZone, x: newX, y: newY }
+        });
+      }
+    } else if (editMode === 'clickzone' && selected.clickZone) {
+      updateSlot(selected.id, {
+        clickZone: { ...selected.clickZone, x: newX, y: newY }
+      });
+    }
   };
 
-  const selected = slots.find((s) => s.id === selectedId) || null;
+  const handleMouseUp = () => {
+    isDragging.current = false;
+  };
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(zoom, zoom);
+
+    // Draw background image if available
+    if (layout.background?.src) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, layout.canvas.width, layout.canvas.height);
+        // Continue drawing on top of background
+        drawGridAndSlots(ctx);
+      };
+      img.src = layout.background.src;
+      return; // Exit early, will continue in onload
+    }
+
+    // If no background, draw directly
+    drawGridAndSlots(ctx);
+  };
+
+  const drawGridAndSlots = (ctx: CanvasRenderingContext2D) => {
+    // Draw grid if enabled
+    if (showGrid) {
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < layout.canvas.width; x += layout.canvas.grid) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, layout.canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < layout.canvas.height; y += layout.canvas.grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(layout.canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    // Draw slots
+    layout.slots.forEach(slot => {
+      const isSelected = selected?.id === slot.id;
+
+      // Draw main slot
+      ctx.fillStyle = slot.color + '40';
+      ctx.fillRect(slot.x, slot.y, slot.width, slot.height);
+      ctx.strokeStyle = isSelected ? '#ef4444' : slot.color;
+      ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.strokeRect(slot.x, slot.y, slot.width, slot.height);
+
+      // Draw click zone if enabled
+      if (showClickZone && slot.clickZone) {
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+        ctx.fillRect(slot.clickZone.x, slot.clickZone.y, slot.clickZone.width, slot.clickZone.height);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(slot.clickZone.x, slot.clickZone.y, slot.clickZone.width, slot.clickZone.height);
+        ctx.setLineDash([]);
+      }
+
+      // Draw label
+      ctx.fillStyle = '#000';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(slot.name, slot.x + slot.width / 2, slot.y + slot.height / 2);
+    });
+
+    ctx.restore();
+  };
+
+  useEffect(() => {
+    drawCanvas();
+  }, [layout, selected, showClickZone, showGrid, zoom]);
 
   return (
-    <div style={{
-      width: "100%",
-      minHeight: "100vh",
-      background: "white",
-      color: "#111827",
-      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
-    }}>
-      {/* Toolbar */}
-      <div style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
-        borderBottom: "1px solid #e5e7eb",
-        background: "rgba(255, 255, 255, 0.9)",
-        backdropFilter: "blur(8px)"
-      }}>
-        <div style={{
-          margin: "0 auto",
-          maxWidth: "1200px",
-          padding: "12px 16px",
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: "12px"
-        }}>
-          <div style={{ fontWeight: 600 }}>UI Layout Editor - Mandate Game</div>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>UI Layout Editor</h1>
 
-          <label style={{ fontSize: "14px" }}>
-            W:
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <button
+          style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
+          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+          onClick={() => addSlot("government")}
+        >
+          + Government
+        </button>
+        <button
+          style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
+          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+          onClick={() => addSlot("public")}
+        >
+          + Public
+        </button>
+        <button
+          style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
+          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+          onClick={() => addSlot("dauerhaft")}
+        >
+          + Dauerhaft
+        </button>
+        <button
+          style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
+          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+          onClick={() => addSlot("sofort")}
+        >
+          + Sofort
+        </button>
+        <button
+          style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
+          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+          onClick={() => addSlot("hand")}
+        >
+          + Hand
+        </button>
+        <button
+          style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
+          onMouseOut={(e) => e.currentTarget.style.background = "white"}
+          onClick={() => addSlot("other")}
+        >
+          + Other
+        </button>
+
+        <div style={{ marginLeft: '20px' }}>
+          <label>
             <input
-              style={{ marginLeft: "4px", width: "80px", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px" }}
-              type="number"
-              value={canvasW}
-              onChange={(e) => setCanvasW(+e.target.value||0)}
+              type="checkbox"
+              checked={showClickZone}
+              onChange={(e) => setShowClickZone(e.target.checked)}
+              style={{ marginRight: '5px' }}
             />
+            Show Click Zones
           </label>
+        </div>
 
-          <label style={{ fontSize: "14px" }}>
-            H:
+        <div style={{ marginLeft: '20px' }}>
+          <label>
             <input
-              style={{ marginLeft: "4px", width: "80px", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px" }}
-              type="number"
-              value={canvasH}
-              onChange={(e) => setCanvasH(+e.target.value||0)}
+              type="checkbox"
+              checked={showGrid}
+              onChange={(e) => setShowGrid(e.target.checked)}
+              style={{ marginRight: '5px' }}
             />
+            Show Grid
           </label>
+        </div>
 
-          <label style={{ fontSize: "14px" }}>
-            Grid:
-            <input
-              style={{ marginLeft: "4px", width: "64px", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px" }}
-              type="number"
-              value={grid}
-              onChange={(e) => setGrid(Math.max(2, +e.target.value||16))}
-            />
-          </label>
-
-          <label style={{ fontSize: "14px" }}>
-            Zoom:
+        <div style={{ marginLeft: '20px' }}>
+          <label>
+            Edit Mode:
             <select
-              style={{ marginLeft: "4px", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px" }}
-              value={zoom}
-              onChange={(e) => setZoom(parseFloat(e.target.value))}
+              value={editMode}
+              onChange={(e) => setEditMode(e.target.value as 'position' | 'clickzone')}
+              style={{ marginLeft: '5px', border: "1px solid #d1d5db", padding: "2px 4px", borderRadius: "4px" }}
             >
-              <option value={0.25}>25%</option>
-              <option value={0.5}>50%</option>
-              <option value={0.75}>75%</option>
-              <option value={1}>100%</option>
-              <option value={1.5}>150%</option>
-              <option value={2}>200%</option>
+              <option value="position">Position</option>
+              <option value="clickzone">Click Zone</option>
             </select>
           </label>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={() => addSlot("government")}
-            >
-              + Government
-            </button>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={() => addSlot("public")}
-            >
-              + Öffentlichkeit
-            </button>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={() => addSlot("dauerhaft")}
-            >
-              + Dauerhaft
-            </button>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={() => addSlot("sofort")}
-            >
-              + Sofort
-            </button>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={() => addSlot("other")}
-            >
-              + Other
-            </button>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "14px" }}>
-              <input
-                type="checkbox"
-                checked={showGrid}
-                onChange={(e) => setShowGrid(e.target.checked)}
-              />
-              Grid
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "14px" }}>
-              <input
-                type="checkbox"
-                checked={showLabels}
-                onChange={(e) => setShowLabels(e.target.checked)}
-              />
-              Labels
-            </label>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={exportJSON}
-            >
-              Export JSON
-            </button>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={exportPNG}
-            >
-              Export PNG
-            </button>
-            <button
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-              onClick={() => exportLayoutAsGameFormat({ canvas: { width: canvasW, height: canvasH, grid }, slots })}
-            >
-              Export Game Format
-            </button>
-            <label
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-            >
-              Import JSON
-              <input
-                type="file"
-                accept="application/json"
-                style={{ display: "none" }}
-                onChange={(e) => e.target.files && importJSON(e.target.files[0])}
-              />
-            </label>
-            <label
-              style={{ border: "1px solid #d1d5db", padding: "4px 12px", borderRadius: "4px", background: "white", cursor: "pointer" }}
-              onMouseOver={(e) => e.currentTarget.style.background = "#f9fafb"}
-              onMouseOut={(e) => e.currentTarget.style.background = "white"}
-            >
-              Hintergrund
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={(e) => e.target.files && handleBgUpload(e.target.files[0])}
-              />
-            </label>
-          </div>
         </div>
+
+        <div style={{ marginLeft: '20px' }}>
+          <label>
+            Zoom:
+            <input
+              type="range"
+              min="0.1"
+              max="2"
+              step="0.1"
+              value={zoom}
+              onChange={(e) => setZoom(parseFloat(e.target.value))}
+              style={{ marginLeft: '5px', width: '100px' }}
+            />
+            {Math.round(zoom * 100)}%
+          </label>
+        </div>
+
+        <button
+          style={{ marginLeft: '20px', border: "1px solid #10b981", padding: "4px 12px", borderRadius: "4px", background: "#10b981", color: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#059669"}
+          onMouseOut={(e) => e.currentTarget.style.background = "#10b981"}
+          onClick={exportGameFormat}
+        >
+          Export Game Format
+        </button>
+
+        <button
+          style={{ marginLeft: '10px', border: "1px solid #3b82f6", padding: "4px 12px", borderRadius: "4px", background: "#3b82f6", color: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#2563eb"}
+          onMouseOut={(e) => e.currentTarget.style.background = "#3b82f6"}
+          onClick={exportPNG}
+        >
+          Export PNG
+        </button>
+
+        <button
+          style={{ marginLeft: '10px', border: "1px solid #8b5cf6", padding: "4px 12px", borderRadius: "4px", background: "#8b5cf6", color: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#7c3aed"}
+          onMouseOut={(e) => e.currentTarget.style.background = "#8b5cf6"}
+          onClick={exportJSON}
+        >
+          Export JSON
+        </button>
+
+        <button
+          style={{ marginLeft: '10px', border: "1px solid #f59e0b", padding: "4px 12px", borderRadius: "4px", background: "#f59e0b", color: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#d97706"}
+          onMouseOut={(e) => e.currentTarget.style.background = "#f59e0b"}
+          onClick={importJSON}
+        >
+          Import JSON
+        </button>
+
+        <button
+          style={{ marginLeft: '10px', border: "1px solid #06b6d4", padding: "4px 12px", borderRadius: "4px", background: "#06b6d4", color: "white", cursor: "pointer" }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#0891b2"}
+          onMouseOut={(e) => e.currentTarget.style.background = "#06b6d4"}
+          onClick={importBackground}
+        >
+          Import Background
+        </button>
       </div>
 
-      {/* Main */}
-      <div style={{
-        margin: "0 auto",
-        maxWidth: "1200px",
-        padding: "12px 16px",
-        display: "grid",
-        gridTemplateColumns: "1fr 300px",
-        gap: "16px"
-      }}>
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
-          <div
-            ref={stageRef}
-            style={{
-              position: "relative",
-              background: "white",
-              width: scaledCanvasW,
-              height: scaledCanvasH,
-              margin: "0 auto",
-              transform: `scale(${zoom})`,
-              transformOrigin: "0 0"
-            }}
-            onPointerDown={onStagePointerDown}
-          >
-            {/* Background image */}
-            {bgSrc && (
-              <img
-                src={bgSrc}
-                alt="bg"
-                draggable={false}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "fill",
-                  pointerEvents: "none"
-                }}
-              />
-            )}
-            {/* Grid overlay */}
-            {showGrid && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  pointerEvents: "none",
-                  backgroundImage: `repeating-linear-gradient(0deg, #e5e7eb 0, #e5e7eb 1px, transparent 1px, transparent ${grid * zoom}px), repeating-linear-gradient(90deg, #e5e7eb 0, #e5e7eb 1px, transparent 1px, transparent ${grid * zoom}px)`,
-                }}
-              />
-            )}
-
-            {/* Slots */}
-            {slots.map((s) => (
-              <SlotBox
-                key={s.id}
-                slot={s}
-                selected={s.id === selectedId}
-                onSelect={() => setSelectedId(s.id)}
-                onBeginDrag={beginDrag}
-                onBeginResize={beginResize}
-                zoom={zoom}
-              />
-            ))}
-          </div>
+      <div style={{ display: 'flex', gap: '20px' }}>
+        <div style={{ flex: 1 }}>
+          <canvas
+            ref={canvasRef}
+            width={layout.canvas.width * zoom}
+            height={layout.canvas.height * zoom}
+            style={{ border: '1px solid #d1d5db', cursor: 'move' }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          />
         </div>
 
-        {/* Properties */}
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={{ fontWeight: 600 }}>Eigenschaften</div>
-          {selectedId && selected ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
-              <label style={{ display: "block" }}>
-                Name
+        {selected && (
+          <div style={{ width: '300px', padding: '20px', border: '1px solid #d1d5db', borderRadius: '4px' }}>
+            <h3>Selected Slot</h3>
+            <div style={{ marginBottom: '10px' }}>
+              <label>
+                Name:
                 <input
-                  style={{ width: "100%", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                  type="text"
                   value={selected.name}
-                  onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, name: e.target.value } : x)))}
+                  onChange={(e) => updateSlot(selected.id, { name: e.target.value })}
+                  style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
                 />
               </label>
-              <label style={{ display: "block" }}>
-                Typ
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label>
+                Type:
                 <select
                   style={{ width: "100%", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
                   value={selected.type}
-                  onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, type: e.target.value, color: typeColor[e.target.value] } : x)))}
+                  onChange={(e) => updateSlot(selected.id, { type: e.target.value, color: typeColor[e.target.value] })}
                 >
                   <option value="government">government</option>
                   <option value="public">public</option>
                   <option value="dauerhaft">dauerhaft</option>
                   <option value="sofort">sofort</option>
+                  <option value="hand">hand</option>
                   <option value="other">other</option>
                 </select>
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <label>
-                  X
-                  <input
-                    style={{ width: "100%", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
-                    type="number"
-                    value={selected.x}
-                    onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, x: +e.target.value } : x)))}
-                  />
-                </label>
-                <label>
-                  Y
-                  <input
-                    style={{ width: "100%", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
-                    type="number"
-                    value={selected.y}
-                    onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, y: +e.target.value } : x)))}
-                  />
-                </label>
-                <label>
-                  W
-                  <input
-                    style={{ width: "100%", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
-                    type="number"
-                    value={selected.width}
-                    onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, width: +e.target.value } : x)))}
-                  />
-                </label>
-                <label>
-                  H
-                  <input
-                    style={{ width: "100%", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
-                    type="number"
-                    value={selected.height}
-                    onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, height: +e.target.value } : x)))}
-                  />
-                </label>
-              </div>
-              <label style={{ display: "block" }}>
-                Farbe
-                <input
-                  style={{ width: "100%", border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
-                  type="color"
-                  value={selected.color || typeColor[selected.type]}
-                  onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, color: e.target.value } : x)))}
-                />
-              </label>
-              <label style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                <input
-                  type="checkbox"
-                  checked={!!selected.locked}
-                  onChange={(e) => setSlots((p) => p.map((x) => (x.id === selected.id ? { ...x, locked: e.target.checked } : x)))}
-                />
-                Locked
-              </label>
-              <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                Shortcuts: Del löschen · Ctrl/Cmd+D duplizieren · L lock/unlock
-              </div>
             </div>
-          ) : (
-            <div style={{ fontSize: "14px", color: "#6b7280" }}>Kein Slot ausgewählt.</div>
-          )}
 
-          <div style={{ paddingTop: "12px", borderTop: "1px solid #e5e7eb" }}>
-            <div style={{ fontWeight: 600, marginBottom: "8px" }}>Export-Preview</div>
-            <textarea
-              style={{
-                width: "100%",
-                height: "192px",
-                border: "1px solid #d1d5db",
-                borderRadius: "4px",
-                padding: "8px",
-                fontSize: "12px",
-                fontFamily: "monospace",
-                resize: "none"
-              }}
-              readOnly
-              value={JSON.stringify({ canvas: { width: canvasW, height: canvasH, grid }, slots }, null, 2)}
-            />
+            <div style={{ marginBottom: '10px' }}>
+              <label>
+                X:
+                <input
+                  type="number"
+                  value={selected.x}
+                  onChange={(e) => updateSlot(selected.id, { x: parseInt(e.target.value) })}
+                  style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label>
+                Y:
+                <input
+                  type="number"
+                  value={selected.y}
+                  onChange={(e) => updateSlot(selected.id, { y: parseInt(e.target.value) })}
+                  style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label>
+                Width:
+                <input
+                  type="number"
+                  value={selected.width}
+                  onChange={(e) => updateSlot(selected.id, { width: parseInt(e.target.value) })}
+                  style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label>
+                Height:
+                <input
+                  type="number"
+                  value={selected.height}
+                  onChange={(e) => updateSlot(selected.id, { height: parseInt(e.target.value) })}
+                  style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                />
+              </label>
+            </div>
+
+            {selected.clickZone && (
+              <>
+                <h4>Click Zone</h4>
+                <div style={{ marginBottom: '10px' }}>
+                  <label>
+                    Click X:
+                    <input
+                      type="number"
+                      value={selected.clickZone.x}
+                      onChange={(e) => updateSlot(selected.id, { clickZone: { ...selected.clickZone!, x: parseInt(e.target.value) } })}
+                      style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                    />
+                  </label>
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label>
+                    Click Y:
+                    <input
+                      type="number"
+                      value={selected.clickZone.y}
+                      onChange={(e) => updateSlot(selected.id, { clickZone: { ...selected.clickZone!, y: parseInt(e.target.value) } })}
+                      style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                    />
+                  </label>
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label>
+                    Click Width:
+                    <input
+                      type="number"
+                      value={selected.clickZone.width}
+                      onChange={(e) => updateSlot(selected.id, { clickZone: { ...selected.clickZone!, width: parseInt(e.target.value) } })}
+                      style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                    />
+                  </label>
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label>
+                    Click Height:
+                    <input
+                      type="number"
+                      value={selected.clickZone.height}
+                      onChange={(e) => updateSlot(selected.id, { clickZone: { ...selected.clickZone!, height: parseInt(e.target.value) } })}
+                      style={{ width: '100%', border: "1px solid #d1d5db", padding: "4px 8px", borderRadius: "4px", marginTop: "4px" }}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+
+            <button
+              style={{ border: "1px solid #ef4444", padding: "4px 12px", borderRadius: "4px", background: "#ef4444", color: "white", cursor: "pointer" }}
+              onMouseOver={(e) => e.currentTarget.style.background = "#dc2626"}
+              onMouseOut={(e) => e.currentTarget.style.background = "#ef4444"}
+              onClick={() => deleteSlot(selected.id)}
+            >
+              Delete Slot
+            </button>
           </div>
-        </div>
-      </div>
-
-      <div style={{
-        margin: "0 auto",
-        maxWidth: "1200px",
-        padding: "0 16px 32px",
-        fontSize: "12px",
-        color: "#6b7280"
-      }}>
-        Tipp: Lade ein PNG/JPG deiner Ziel-UI als Hintergrund und ziehe die Slots darüber. Export JSON → direkt ins Spiel übernehmen.
+        )}
       </div>
     </div>
   );
-}
+};
 
-interface SlotBoxProps {
-  slot: Slot;
-  selected: boolean;
-  onSelect: () => void;
-  onBeginDrag: (id: string, e: React.PointerEvent) => void;
-  onBeginResize: (id: string, dir: string, e: React.PointerEvent) => void;
-  zoom: number;
-}
-
-function SlotBox({ slot, selected, onSelect, onBeginDrag, onBeginResize, zoom }: SlotBoxProps) {
-  const handles = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
-  return (
-    <div
-      style={{
-        position: "absolute",
-        userSelect: "none",
-        pointerEvents: slot.locked ? "none" : "auto",
-        cursor: slot.locked ? "default" : "move",
-        left: slot.x * zoom,
-        top: slot.y * zoom,
-        width: slot.width * zoom,
-        height: slot.height * zoom,
-        border: `2px dashed ${slot.locked ? "#9ca3af" : (slot.color || typeColor[slot.type])}`,
-        boxSizing: "border-box",
-        background: "transparent"
-      }}
-      onPointerDown={(e) => { e.stopPropagation(); onSelect(); onBeginDrag(slot.id, e); }}
-    >
-      {/* label */}
-      <div style={{ fontSize: "12px", color: "#374151", padding: "4px" }}>
-        {slot.name} ({slot.type})
-      </div>
-      {/* resize handles */}
-      {selected && !slot.locked && handles.map((dir) => (
-        <div
-          key={dir}
-          onPointerDown={(e) => { e.stopPropagation(); onBeginResize(slot.id, dir, e); }}
-          style={{
-            position: "absolute",
-            background: "white",
-            border: "1px solid #6b7280",
-            width: 10,
-            height: 10,
-            ...(posForHandle(dir, slot.width * zoom, slot.height * zoom)),
-            cursor: cursorFor(dir)
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function posForHandle(dir: string, w: number, h: number) {
-  const map: Record<string, { left: number; top: number }> = {
-    nw: { left: -5, top: -5 },
-    n: { left: w / 2 - 5, top: -5 },
-    ne: { left: w - 5, top: -5 },
-    e: { left: w - 5, top: h / 2 - 5 },
-    se: { left: w - 5, top: h - 5 },
-    s: { left: w / 2 - 5, top: h - 5 },
-    sw: { left: -5, top: h - 5 },
-    w: { left: -5, top: h / 2 - 5 },
-  };
-  return map[dir];
-}
-
-function cursorFor(dir: string) {
-  const map: Record<string, string> = { n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize", ne: "nesw-resize", sw: "nesw-resize", nw: "nwse-resize", se: "nwse-resize" };
-  return map[dir] || "default";
-}
+export default UILayoutEditor;

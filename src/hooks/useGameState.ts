@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { GameState, Card, PoliticianCard, SpecialCard, Player, BuilderEntry } from '../types/game';
+import { GameState, Card, PoliticianCard, SpecialCard, Player, BuilderEntry, createDefaultEffectFlags } from '../types/game';
 import { Pols, Specials, PRESET_DECKS } from '../data/gameData';
 import {
   sumRow,
@@ -21,6 +21,7 @@ import { useGameActions } from './useGameActions';
 import { useGameAI } from './useGameAI';
 import { useGameEffects } from './useGameEffects';
 import { applyStartOfTurnHooks } from '../utils/startOfTurnHooks';
+import { emptyBoard, emptyBoardSide, ensureSofortBoard } from '../state/board';
 
 const initialGameState: GameState = {
   round: 1,
@@ -31,17 +32,10 @@ const initialGameState: GameState = {
   decks: { 1: [], 2: [] },
   hands: { 1: [], 2: [] },
   traps: { 1: [], 2: [] },
-  board: {
-    1: { innen: [], aussen: [] },
-    2: { innen: [], aussen: [] },
-  },
+  board: emptyBoard(),
   permanentSlots: {
     1: { government: null, public: null },
     2: { government: null, public: null },
-  },
-  instantSlot: {
-    1: null,
-    2: null,
   },
   discard: [],
   log: [],
@@ -49,48 +43,8 @@ const initialGameState: GameState = {
   roundsWon: { 1: 0, 2: 0 },
   gameWinner: null,
   effectFlags: {
-    1: {
-      freeInitiativeAvailable: false,
-      platformRefundAvailable: false,
-      platformRefundUsed: false,
-      ngoInitiativeDiscount: 0,
-      platformInitiativeDiscount: 0,
-      diplomatInfluenceTransferUsed: false,
-      influenceTransferBlocked: false,
-      nextGovPlus2: false,
-      nextGovernmentCardBonus: 0,
-      nextInitiativeDiscounted: false,
-      nextInitiativeMinus1: false,
-      nextInitiativeRefund: 0,
-      govRefundAvailable: false,
-      publicEffectDoubled: false,
-      cannotPlayInitiatives: false,
-      nextCardProtected: false,
-      platformAfterInitiativeBonus: false,
-      interventionEffectReduced: false,
-      opportunistActive: false,
-    },
-    2: {
-      freeInitiativeAvailable: false,
-      platformRefundAvailable: false,
-      platformRefundUsed: false,
-      ngoInitiativeDiscount: 0,
-      platformInitiativeDiscount: 0,
-      diplomatInfluenceTransferUsed: false,
-      influenceTransferBlocked: false,
-      nextGovPlus2: false,
-      nextGovernmentCardBonus: 0,
-      nextInitiativeDiscounted: false,
-      nextInitiativeMinus1: false,
-      nextInitiativeRefund: 0,
-      govRefundAvailable: false,
-      publicEffectDoubled: false,
-      cannotPlayInitiatives: false,
-      nextCardProtected: false,
-      platformAfterInitiativeBonus: false,
-      interventionEffectReduced: false,
-      opportunistActive: false,
-    }
+    1: createDefaultEffectFlags(),
+    2: createDefaultEffectFlags()
   },
   effectQueue: EffectQueueManager.initializeQueue(),
   activeAbilities: {
@@ -211,13 +165,13 @@ export function useGameState() {
       passed: { 1: false, 2: false },
       actionPoints: { 1: 2, 2: 2 },
       actionsUsed: { 1: 0, 2: 0 },
-      board: { 1: { innen: [], aussen: [] }, 2: { innen: [], aussen: [] } },
+      board: emptyBoard(),
       traps: { 1: [], 2: [] },
       permanentSlots: {
         1: { government: null, public: null },
         2: { government: null, public: null },
       },
-      instantSlot: { 1: null, 2: null },
+      // instantSlot wird nicht mehr verwendet - Sofort-Initiativen gehen in board[player].sofort
       discard: [],
       log: [],
       activeRefresh: { 1: 0, 2: 0 },
@@ -256,13 +210,13 @@ export function useGameState() {
       passed: { 1: false, 2: false },
       decks: { 1: d1, 2: d2 },
       hands: { 1: h1, 2: h2 },
-      board: { 1: { innen: [], aussen: [] }, 2: { innen: [], aussen: [] } },
+      board: emptyBoard(),
       traps: { 1: [], 2: [] },
       permanentSlots: {
         1: { government: null, public: null },
         2: { government: null, public: null },
       },
-      instantSlot: { 1: null, 2: null },
+      // instantSlot wird nicht mehr verwendet - Sofort-Initiativen gehen in board[player].sofort
       discard: [],
       log: [`Match gestartet. P1 und P2 erhalten je ${h1.length}/${h2.length} Startkarten.`],
       activeRefresh: { 1: 0, 2: 0 },
@@ -597,7 +551,7 @@ export function useGameState() {
     }
 
     // clear board (no carryover)
-    const newBoard = { 1: { innen: [], aussen: [] }, 2: { innen: [], aussen: [] } };
+    const newBoard = emptyBoard();
     const newTraps = { 1: [], 2: [] };
 
     // Verbesserte Karten-Nachzieh-Mechanik (ziehe bis Hand voll ist)
@@ -619,6 +573,42 @@ export function useGameState() {
 
     log(`Runde ${newRound} beginnt. P${newCurrent} startet.`);
 
+    // 🔥 CLUSTER 3: Reset temporäre Initiative-Boni am Rundenende
+    const newEffectFlags = {
+      1: {
+        ...state.effectFlags[1],
+        // Reset Cluster 3 Flags
+        scienceInitiativeBonus: false,
+        militaryInitiativePenalty: false,
+        healthInitiativeBonus: false,
+        cultureInitiativeBonus: false,
+        // Reset andere rundenbasierte Flags
+        markZuckerbergUsed: false,
+        opportunistActive: false,
+        publicEffectDoubled: false,
+        cannotPlayInitiatives: false,
+        nextCardProtected: false,
+        platformAfterInitiativeBonus: false,
+        interventionEffectReduced: false,
+      },
+      2: {
+        ...state.effectFlags[2],
+        // Reset Cluster 3 Flags
+        scienceInitiativeBonus: false,
+        militaryInitiativePenalty: false,
+        healthInitiativeBonus: false,
+        cultureInitiativeBonus: false,
+        // Reset andere rundenbasierte Flags
+        markZuckerbergUsed: false,
+        opportunistActive: false,
+        publicEffectDoubled: false,
+        cannotPlayInitiatives: false,
+        nextCardProtected: false,
+        platformAfterInitiativeBonus: false,
+        interventionEffectReduced: false,
+      }
+    };
+
     return {
       ...state,
       round: newRound,
@@ -629,6 +619,7 @@ export function useGameState() {
       hands: newHands,
       decks: newDecks,
       roundsWon: newRoundsWon,
+      effectFlags: newEffectFlags,
     };
   }, [log, scores]);
 
@@ -1334,6 +1325,7 @@ export function useGameState() {
     startMatchWithDecks: gameActions.startMatchWithDecks,
     startMatchVsAI: gameActions.startMatchVsAI,
     playCard: gameActions.playCard,
+    activateInstantInitiative: gameActions.activateInstantInitiative,
 
     // AI functionality
     runAITurn: gameAI.runAITurn,

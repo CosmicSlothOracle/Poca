@@ -1,7 +1,7 @@
 # Public Cards - Personen aus Medien, Wirtschaft und Wissenschaft
 
 **Was sind Public Cards?**
-Public Cards sind Personen aus Medien, Wirtschaft, Wissenschaft und Aktivismus, die deine politischen Aktionen unterstuetzen. Du spielst sie in die Oeffentlichkeitsreihe (maximal 5 Karten). Sie geben dir Boni wie kostenlose Aktionen, Kartenziehen oder Action Points (AP)-Rueckerstattung.
+Public Cards sind Personen aus Medien, Wirtschaft, Wissenschaft und Aktivismus, die deine politischen Aktionen unterstuetzen. Du spielst sie in die Oeffentlichkeitsreihe (maximal 3 Karten). Sie geben dir Boni wie kostenlose Aktionen, Kartenziehen oder Action Points (AP)-Rueckerstattung.
 
 **Wie funktionieren die Unterkategorien?**
 Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimmen, wie die Karte mit anderen Karten zusammenarbeitet:
@@ -13,7 +13,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **Elon Musk**
 
 - **Unterkategorien:** Oligarch, Plattform
-- **Effect im Game:** Ziehe 1 Karte. Deine erste Initiative pro Round kostet 1 Action Points (AP) weniger.
+- **Effekt im Game:** Ziehe 1 Karte. Deine erste Initiative pro Round kostet 1 Action Points (AP) weniger.
 - **Synergie:** Kartenziehen + Initiative-Rabatt = Tempo
 - **Deckbuildingkosten:** 8 HP
 - **Persoenliche Informationen:**
@@ -27,7 +27,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **Bill Gates**
 
 - **Unterkategorien:** Oligarch, NGO/Think-Tank
-- **Effect im Game:** Ziehe 1 Karte. Deine naechste Initiative kostet 1 Action Points (AP) weniger.
+- **Effekt im Game:** Ziehe 1 Karte. Deine naechste Initiative kostet 1 Action Points (AP) weniger.
 - **Synergie:** Kombinierter Support fuer Gesundheitsdecks
 - **Deckbuildingkosten:** 7 HP
 - **Persoenliche Informationen:**
@@ -41,7 +41,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **Mark Zuckerberg**
 
 - **Unterkategorien:** Plattform
-- **Effect im Game:** Nach einer Initiative: +1 Action Points (AP) zurueck (einmal pro Round).
+- **Effekt im Game:** Nach einer Initiative: +1 Action Points (AP) zurueck (einmal pro Round).
 - **Synergie:** Klassischer Plattform-Support fuer Tempo
 - **Deckbuildingkosten:** 5 HP
 - **Persoenliche Informationen:**
@@ -55,7 +55,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **Oprah Winfrey**
 
 - **Unterkategorien:** Medien
-- **Effect im Game:** Wenn du eine Initiative spielst, darfst du 1 Karte abwerfen und 1 ziehen.
+- **Effekt im Game:** Wenn du eine Initiative spielst, darfst du 1 Karte abwerfen und 1 ziehen.
 - **Synergie:** Medienrecycling fuer bessere Kartenqualitaet
 - **Deckbuildingkosten:** 5 HP
 - **Persoenliche Informationen:**
@@ -69,7 +69,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **Sam Altman**
 
 - **Unterkategorien:** Intelligenz, Plattform
-- **Effect im Game:** Bei einer KI-bezogenen Initiative: ziehe 1 Karte + 1 Action Points (AP) zurueck.
+- **Effekt im Game:** Bei einer KI-bezogenen Initiative: ziehe 1 Karte + 1 Action Points (AP) zurueck.
 - **Synergie:** KI-Tempo-Support fuer Technologie-Decks
 - **Deckbuildingkosten:** 6 HP
 - **Persoenliche Informationen:**
@@ -83,7 +83,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **George Soros**
 
 - **Unterkategorien:** Oligarch, NGO/Think-Tank
-- **Effect im Game:** +1 Action Points (AP) wenn der Gegner eine autoritaere Government Cards hat.
+- **Effekt im Game:** +1 Action Points (AP) wenn der Gegner eine autoritaere Government Cards hat.
 - **Synergie:** Anti-Autokratie-Synergie gegen autoritaere Gegner
 - **Deckbuildingkosten:** 7 HP
 - **Persoenliche Informationen:**
@@ -97,7 +97,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **Greta Thunberg**
 
 - **Unterkategorien:** Bewegung
-- **Effect im Game:** Deine erste Government Cards pro Round kostet 0 Action Points (einmal pro Round).
+- **Effekt im Game:** Deine erste Government Cards pro Round kostet 0 Action Points (einmal pro Round).
 - **Synergie:** Bewegungstempo fuer schnellen Regierungsaufbau
 - **Deckbuildingkosten:** 4 HP
 - **Persoenliche Informationen:**
@@ -375,7 +375,7 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 
 **Example:** Greta Thunberg (Bewegung) + jede Government Cards
 
-- **Effect:** Erste Government Cards kostenlos → schneller Aufbau von Influence
+- **Effekt:** Erste Government Cards kostenlos → schneller Aufbau von Einfluss
 - **Warum funktioniert das?** Du sparst Action Points und kannst mehr machen
 
 ### **NGO/Think-Tank + Initiatives**
@@ -418,5 +418,5 @@ Jede Public Cards gehoert zu einer oder mehreren Unterkategorien. Diese bestimme
 ### **Influence-Strategie**
 
 - **Karten:** Bewegung + Government Cards + "Wirtschaftlicher Druck"
-- **Effect:** Schneller Influenceaufbau
+- **Effekt:** Schneller Einflussaufbau
 - **Example:** Greta Thunberg + Vladimir Putin + "Wirtschaftlicher Druck"

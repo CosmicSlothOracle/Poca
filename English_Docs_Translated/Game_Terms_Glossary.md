@@ -67,7 +67,7 @@
 - **Effect:** Beim Ausspielen ziehst du 1 Karte.
 - **Example:** Elon Musk, Bill Gates, George Soros
 
-### **Plattform**
+### **Tech**
 
 - **What is it?** Personen, die digitale Plattformen oder Medien kontrollieren.
 - **Effect:** Einmal pro Round bekommst du nach einer Initiative 1 AP zurueck.
@@ -79,13 +79,13 @@
 - **Effect:** Deine erste Government Cards pro Round kostet 0 AP (einmal pro Round).
 - **Example:** Greta Thunberg, Malala Yousafzai
 
-### **NGO/Think-Tank**
+### **NGO**
 
 - **What is it?** Personen aus Nichtregierungsorganisationen und Forschungsinstituten.
 - **Effect:** Deine naechste Initiative in diesem Zug kostet 1 AP weniger.
 - **Example:** Jennifer Doudna, Noam Chomsky
 
-### **Intelligenz**
+### **Opinion Leader**
 
 - **What is it?** Wissenschaftler, Denker, Whistleblower.
 - **Effect:** Verschiedene thematische Boni je nach Karte.
@@ -109,9 +109,9 @@
 
 ### **Diplomat**
 
-- **What is it?** Diplomatische Faehigkeiten - erlaubt Influenceverschiebung.
-- **Effect:** Einmal pro Zug kannst du 1 Influence zwischen zwei deiner Government Cards verschieben.
-- **Example:** Joschka Fischer kann Influence von einer schwachen auf eine starke Karte verschieben.
+- **What is it?** Diplomatische Faehigkeiten - erlaubt Einflussverschiebung.
+- **Effect:** Einmal pro Zug kannst du 1 Einfluss zwischen zwei deiner Government Cards verschieben.
+- **Example:** Joschka Fischer kann Einfluss von einer schwachen auf eine starke Karte verschieben.
 
 ---
 
@@ -119,16 +119,16 @@
 
 ### **Schutz**
 
-- **What is it?** Eine Karte ist vor dem naechsten negativen Effect geschuetzt.
-- **Effect:** Der naechste negative Effect wird verhindert, dann ist der Schutz weg.
+- **What is it?** Eine Karte ist vor dem naechsten negativen Effekt geschuetzt.
+- **Effect:** Der naechste negative Effekt wird verhindert, dann ist der Schutz weg.
 - **Example:** Eine Karte mit Schutz ueberlebt eine "Partei-Offensive".
 
 ### **Deaktiviert**
 
-- **What is it?** Eine Karte liegt noch, aber ihre aktiven Effecte sind aus.
-- **Effect:** Die Karte gibt noch Influence, aber ihre Spezialeffekte funktionieren nicht.
+- **What is it?** Eine Karte liegt noch, aber ihre aktiven Effekte sind aus.
+- **Effect:** Die Karte gibt noch Einfluss, aber ihre Spezialeffekte funktionieren nicht.
 - **Dauer:** Bis zum Roundnende.
-- **Example:** Eine deaktivierte Government Cards gibt noch Influence, aber ihr Leadership-Effect funktioniert nicht.
+- **Example:** Eine deaktivierte Government Cards gibt noch Einfluss, aber ihr Leadership-Effekt funktioniert nicht.
 
 ---
 
@@ -138,7 +138,7 @@
 
 - **What is it?** Ein vollstaendiger Gameabschnitt bis beide Gameer gepasst haben.
 - **Ende:** Wenn beide Gameer nacheinander passen.
-- **Gewinner:** Wer mehr Influence in der Regierungsreihe hat.
+- **Gewinner:** Wer mehr Einfluss in der Regierungsreihe hat.
 
 ### **Game**
 
@@ -208,18 +208,18 @@
 
 ### **Trigger**
 
-- **What is it?** Bedingungen, die Effecte ausloesen.
+- **What is it?** Bedingungen, die Effekte ausloesen.
 - **Example:** "Wenn du eine Oligarchen-Karte spielst, ziehe 1 Karte."
 
 ### **Einmal pro Round**
 
-- **What is it?** Der Effect funktioniert nur einmal pro Round.
-- **Example:** Plattform-Effect gibt nur einmal pro Round AP zurueck.
+- **What is it?** Der Effekt funktioniert nur einmal pro Round.
+- **Example:** Plattform-Effekt gibt nur einmal pro Round AP zurueck.
 
 ### **Einmal pro Zug**
 
-- **What is it?** Der Effect funktioniert nur einmal pro deinem Zug.
-- **Example:** Diplomat-Effect erlaubt nur einmal pro Zug Influenceverschiebung.
+- **What is it?** Der Effekt funktioniert nur einmal pro deinem Zug.
+- **Example:** Diplomat-Effekt erlaubt nur einmal pro Zug Einflussverschiebung.
 
 ---
 
@@ -248,14 +248,14 @@
 ### **Leadership + Plattform**
 
 - **Karten:** Justin Trudeau (Leadership) + Mark Zuckerberg (Plattform)
-- **Effect:** Erste Initiative kostenlos → zweite Initiative fuer 1 AP → 1 AP zurueck → 3 Aktionen aus 2 AP
+- **Effekt:** Erste Initiative kostenlos → zweite Initiative fuer 1 AP → 1 AP zurueck → 3 Aktionen aus 2 AP
 
 ### **Bewegung + Regierung**
 
 - **Karten:** Greta Thunberg (Bewegung) + jede Government Cards
-- **Effect:** Erste Government Cards kostenlos → schneller Aufbau von Influence
+- **Effekt:** Erste Government Cards kostenlos → schneller Aufbau von Einfluss
 
 ### **Oligarch + Wirtschaftlicher Druck**
 
 - **Karten:** Elon Musk (Oligarch) + "Wirtschaftlicher Druck" (Dauer-Initiative)
-- **Effect:** Jedes Mal wenn du einen Oligarchen spielst, bekommt eine Government Cards +1 Influence
+- **Effekt:** Jedes Mal wenn du einen Oligarchen spielst, bekommt eine Government Cards +1 Einfluss

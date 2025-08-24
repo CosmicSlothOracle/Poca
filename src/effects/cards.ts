@@ -1,124 +1,270 @@
-import type { GameState, Player, Card } from '../types/game';
-import { enqueueEffect } from '../utils/queue';
+import { GameState, Player, Card, EffectEvent } from '../types/game';
+import { resolveQueue } from '../utils/queue';
+import { getStrongestGovCardUid } from '../utils/effectUtils';
 
-// Helper functions for on-play effects
-const other = (p: Player): Player => (p === 1 ? 2 : 1) as Player;
-const isPol = (c: Card): c is any => c && c.kind === 'pol';
+function other(p: Player): Player { return p === 1 ? 2 : 1; }
 
-function strongestGovCard(state: GameState, p: Player): any | undefined {
-  const gov = state.board[p].aussen.filter(isPol).filter(c => !c.deactivated);
-  if (gov.length === 0) return undefined;
-  return gov.reduce((a, b) => (a.influence >= b.influence ? a : b));
-}
+export function triggerCardEffects(state: GameState, player: Player, card: Card) {
+  // Ensure queue exists
+  if (!state._effectQueue) state._effectQueue = [];
 
-function inPublicIsPlatformOrAI(c: Card): boolean {
-  const raw = (c as any).tag ?? (c as any).tags ?? [];
-  const tags: string[] = Array.isArray(raw) ? raw : [raw];
-  return tags.some(t => /plattform|platform|intelligenz|ki|ai/i.test(String(t)));
-}
-
-export function triggerCardEffects(
-  state: GameState,
-  p: Player,
-  card: Card,
-  lane?: 'innen'|'aussen'
-) {
-  const name = (card as any).name ?? '';
-  const key = (card as any).key ?? card.name;
-
-  // Beispiel 1: Think-tank → -1 AP auf NÄCHSTE Initiative
-  if (name === 'Think-tank') {
-    enqueueEffect(state, { kind: 'DISCOUNT_NEXT_INITIATIVE', player: p });
-    enqueueEffect(state, { kind: 'LOG', message: '[THINK-TANK] Naechste Initiative -1 AP.' });
-  }
-
-  // Beispiel 2: Bill Gates (NGO) → NÄCHSTE Initiative +1 AP Refund
-  if (name === 'Bill Gates') {
-    enqueueEffect(state, { kind: 'REFUND_NEXT_INITIATIVE', player: p, amount: 1 });
-    enqueueEffect(state, { kind: 'LOG', message: '[BILL GATES] Naechste Initiative +1 AP Refund.' });
-  }
-
-  // Beispiel 3: Elon Musk (NGO) → NÄCHSTE Initiative +1 AP Refund (erste Initiative pro Runde)
-  if (name === 'Elon Musk') {
-    enqueueEffect(state, { kind: 'REFUND_NEXT_INITIATIVE', player: p, amount: 1 });
-    enqueueEffect(state, { kind: 'LOG', message: '[ELON MUSK] Erste Initiative pro Runde +1 AP Refund.' });
-  }
-
-  // 🔧 NEU: On-Play Immediate Effects
-  switch (key) {
-    case 'jack_ma':
+  switch (card.name) {
+    // --- Public (Oligarch/Plattform/NGO/Bewegung etc.) ---
+    case 'Elon Musk': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 }); // erste Initiative -1 AP
+      state._effectQueue.push({ type: 'LOG', msg: 'Elon Musk: +1 Karte, nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Bill Gates': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Bill Gates: +1 Karte, nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Mark Zuckerberg': {
+      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 }); // Sofort einmaliger Refund-Pool +1
+      state._effectQueue.push({ type: 'LOG', msg: 'Mark Zuckerberg: Refund-Pool +1 für die nächste Initiative' });
+      break;
+    }
     case 'Jack Ma': {
-      enqueueEffect(state, { kind: 'DRAW_CARDS', player: p, count: 1 });
-      enqueueEffect(state, { kind: 'LOG', message: '[JACK MA] +1 Karte gezogen.' });
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Jack Ma: +1 Karte' });
       break;
     }
-
-    case 'oprah_winfrey':
+    case 'Zhang Yiming': {
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Zhang Yiming: nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Mukesh Ambani': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Mukesh Ambani: +1 AP' });
+      break;
+    }
+    case 'Roman Abramovich': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Roman Abramovich: +1 AP' });
+      break;
+    }
+    case 'Alisher Usmanov': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Alisher Usmanov: +1 Karte' });
+      break;
+    }
     case 'Oprah Winfrey': {
-      enqueueEffect(state, { kind: 'DISCARD_RANDOM_FROM_HAND', player: p });
-      enqueueEffect(state, { kind: 'DISCARD_RANDOM_FROM_HAND', player: other(p) });
-      enqueueEffect(state, { kind: 'LOG', message: '[OPRAH WINFREY] Beide Spieler verlieren eine zufällige Handkarte.' });
+      // je 1 zufällige Handkarte bei beiden deaktivieren (als abgeworfen interpretieren)
+      state._effectQueue.push({ type: 'DEACTIVATE_RANDOM_HAND', player, amount: 1 });
+      state._effectQueue.push({ type: 'DEACTIVATE_RANDOM_HAND', player: other(player), amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Oprah Winfrey: jeweils 1 zufällige Handkarte beider Spieler deaktiviert' });
+      break;
+    }
+    case 'George Soros': {
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'George Soros: nächste Initiative -1 AP' });
       break;
     }
 
-    case 'algorithmischer_diskurs':
-    case 'Algorithmischer Diskurs': {
-      // Für jeden Spieler separat zählen und anwenden
-      [1, 2].forEach((pp) => {
-        const publicRow = state.board[pp as Player].innen;
-        const n = publicRow.filter(inPublicIsPlatformOrAI).length;
-        if (n > 0) {
-          const target = strongestGovCard(state, pp as Player);
-          if (target) {
-            enqueueEffect(state, {
-              kind: 'ADJUST_INFLUENCE',
-              player: pp as Player,
-              targetCard: target,
-              delta: -n,
-              source: `Algorithmischer Diskurs (${n} Plattform/KI in Öffentlichkeit)`
-            });
-          }
-        }
-      });
-      enqueueEffect(state, { kind: 'LOG', message: '[ALGORITHMISCHER DISKURS] Einfluss-Reduktion basierend auf Plattform/KI-Karten.' });
+    // --- Neue Karten gemäß Guidelines §9 ---
+    case 'Warren Buffett': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 2 });
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Warren Buffett: +2 Karten, nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Jeff Bezos': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 2 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Jeff Bezos: +2 AP' });
+      break;
+    }
+    case 'Larry Page': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Larry Page: +1 Karte, Refund-Pool +1' });
+      break;
+    }
+    case 'Sergey Brin': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Sergey Brin: +1 Karte, Refund-Pool +1' });
+      break;
+    }
+    case 'Tim Cook': {
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 2 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Tim Cook: nächste Initiative -2 AP' });
       break;
     }
 
-    case 'opportunist':
-    case 'Opportunist': {
-      enqueueEffect(state, { kind: 'SET_FLAG', player: p, path: 'opportunistActive', value: true });
-      enqueueEffect(state, { kind: 'LOG', message: '[OPPORTUNIST] Einfluss-Boni des Gegners werden gespiegelt.' });
+    // --- Government (Leadership/Diplomat etc. vereinfachte Sofort-Effekte bei Play) ---
+    case 'Vladimir Putin': {
+      state._effectQueue.push({ type: 'BUFF_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Vladimir Putin: stärkste Regierung +1 Einfluss' });
       break;
     }
-
-    case 'spin_doctor':
-    case 'Spin Doctor': {
-      const target = strongestGovCard(state, p);
-      if (target) {
-        enqueueEffect(state, {
-          kind: 'ADJUST_INFLUENCE',
-          player: p,
-          targetCard: target,
-          delta: 1,
-          source: 'Spin Doctor'
-        });
+    case 'Xi Jinping': {
+      state._effectQueue.push({ type: 'BUFF_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Xi Jinping: stärkste Regierung +1 Einfluss' });
+      break;
+    }
+    case 'Recep Tayyip Erdoğan':
+    case 'Recep Tayyip Erdogan':
+    case 'Erdogan': {
+      state._effectQueue.push({ type: 'DISCARD_RANDOM_FROM_HAND', player: other(player), amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Erdoğan: Gegner wirft 1 zufällige Handkarte ab' });
+      break;
+    }
+    case 'Joschka Fischer': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Joschka Fischer: +1 Karte' });
+      break;
+    }
+    case 'Ursula von der Leyen': {
+      const uid = getStrongestGovCardUid(state, player);
+      if (uid != null) {
+        state._effectQueue.push({ type: 'GRANT_SHIELD', targetUid: uid });
       }
-      enqueueEffect(state, { kind: 'LOG', message: '[SPIN DOCTOR] +1 Einfluss auf stärkste Regierungskarte.' });
+      state._effectQueue.push({ type: 'LOG', msg: 'Ursula von der Leyen: 🛡️ Schutz auf stärkste Regierung' });
+      break;
+    }
+    case 'Emmanuel Macron': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Emmanuel Macron: +1 AP' });
+      break;
+    }
+    case 'Olaf Scholz': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Olaf Scholz: +1 Karte' });
+      break;
+    }
+    case 'Luiz Inácio Lula da Silva':
+    case 'Luiz Inacio Lula da Silva': {
+      state._effectQueue.push({ type: 'ADJUST_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Luiz Inácio Lula da Silva: stärkste Regierung +1 Einfluss' });
+      break;
+    }
+    case 'Volodymyr Zelenskyy': {
+      const uid = getStrongestGovCardUid(state, player);
+      if (uid != null) {
+        state._effectQueue.push({ type: 'GRANT_SHIELD', targetUid: uid });
+      }
+      state._effectQueue.push({ type: 'LOG', msg: 'Volodymyr Zelenskyy: 🛡️ Schutz auf stärkste Regierung' });
+      break;
+    }
+    case 'Sergey Lavrov': {
+      const opp: Player = player === 1 ? 2 : 1;
+      state._effectQueue.push({ type: 'DISCARD_RANDOM_FROM_HAND', player: opp, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Sergey Lavrov: Gegner wirft 1 zufällige Handkarte ab' });
       break;
     }
 
-    case 'verzoegerungsverfahren':
-    case 'Verzögerungsverfahren': {
-      enqueueEffect(state, { kind: 'ADD_AP', player: p, amount: 1 });
-      enqueueEffect(state, { kind: 'LOG', message: '[VERZÖGERUNGSVERFAHREN] +1 AP erhalten.' });
+    // --- Neue Government-Karten ---
+    case 'Angela Merkel': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 2 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Angela Merkel: +2 Karten' });
+      break;
+    }
+    case 'Joe Biden': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Joe Biden: +1 AP, +1 Karte' });
+      break;
+    }
+    case 'Justin Trudeau': {
+      state._effectQueue.push({ type: 'BUFF_STRONGEST_GOV', player, amount: 2 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Justin Trudeau: stärkste Regierung +2 Einfluss' });
+      break;
+    }
+    case 'Shinzo Abe': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Shinzo Abe: +1 Karte, nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Narendra Modi': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'BUFF_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Narendra Modi: +1 AP, stärkste Regierung +1 Einfluss' });
+      break;
+    }
+
+    // --- Nächste 10 Karten gemäß Guidelines §9 ---
+    case 'Sam Altman': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Sam Altman: +1 Karte, nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Greta Thunberg': {
+      state._effectQueue.push({ type: 'DISCARD_RANDOM_FROM_HAND', player: other(player), amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Greta Thunberg: Gegner wirft 1 zufällige Handkarte ab' });
+      break;
+    }
+    case 'Jennifer Doudna': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Jennifer Doudna: +1 Karte, Refund-Pool +1' });
+      break;
+    }
+    case 'Malala Yousafzai': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Malala Yousafzai: +1 Karte' });
+      break;
+    }
+    case 'Noam Chomsky': {
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Noam Chomsky: nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Ai Weiwei': {
+      state._effectQueue.push({ type: 'DISCARD_RANDOM_FROM_HAND', player: other(player), amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Ai Weiwei: Gegner wirft 1 zufällige Handkarte ab' });
+      break;
+    }
+    case 'Alexei Navalny': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'BUFF_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Alexei Navalny: +1 Karte, stärkste Regierung +1 Einfluss' });
+      break;
+    }
+    case 'Anthony Fauci': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Anthony Fauci: +1 Karte, nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Gautam Adani': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Gautam Adani: +1 AP, +1 Karte' });
+      break;
+    }
+    case 'Edward Snowden': {
+      state._effectQueue.push({ type: 'DISCARD_RANDOM_FROM_HAND', player: other(player), amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Edward Snowden: Gegner wirft 1 zufällige Handkarte ab' });
+      break;
+    }
+
+    // --- Sofort-Initiativen (Beispiele, wenn du sie direkt aktivierst) ---
+    case 'Digitaler Wahlkampf': {
+      state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 2 });
+      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 }); // nächste Initiative -1 AP
+      state._effectQueue.push({ type: 'LOG', msg: 'Digitaler Wahlkampf: +2 Karten, nächste Initiative -1 AP' });
+      break;
+    }
+    case 'Verzögerungsverfahren':
+    case 'Verzoegerungsverfahren': {
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Verzögerungsverfahren: +1 AP' });
+      break;
+    }
+    case 'Spin Doctor': {
+      state._effectQueue.push({ type: 'ADJUST_STRONGEST_GOV', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Spin Doctor: stärkste Regierung +1 Einfluss' });
       break;
     }
 
     default:
-      // nichts
+      // Kein Effekt – bewusst still
       break;
   }
-
-  // Weitere Karten hier sauber hinzufügen …
 }
-
