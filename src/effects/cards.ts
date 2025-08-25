@@ -12,19 +12,19 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     // --- Public (Oligarch/Plattform/NGO/Bewegung etc.) ---
     case 'Elon Musk': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 }); // erste Initiative -1 AP
-      state._effectQueue.push({ type: 'LOG', msg: 'Elon Musk: +1 Karte, nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 }); // simplified: immediate +1 AP
+      state._effectQueue.push({ type: 'LOG', msg: 'Elon Musk: +1 Karte, +1 AP' });
       break;
     }
     case 'Bill Gates': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Bill Gates: +1 Karte, nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Bill Gates: +1 Karte, +1 AP' });
       break;
     }
     case 'Mark Zuckerberg': {
-      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 }); // Sofort einmaliger Refund-Pool +1
-      state._effectQueue.push({ type: 'LOG', msg: 'Mark Zuckerberg: Refund-Pool +1 für die nächste Initiative' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 }); // immediate AP
+      state._effectQueue.push({ type: 'LOG', msg: 'Mark Zuckerberg: +1 AP' });
       break;
     }
     case 'Jack Ma': {
@@ -33,8 +33,8 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
       break;
     }
     case 'Zhang Yiming': {
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Zhang Yiming: nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Zhang Yiming: +1 AP' });
       break;
     }
     case 'Mukesh Ambani': {
@@ -60,16 +60,16 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
       break;
     }
     case 'George Soros': {
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'George Soros: nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'George Soros: +1 AP' });
       break;
     }
 
     // --- Neue Karten gemäß Guidelines §9 ---
     case 'Warren Buffett': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 2 });
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Warren Buffett: +2 Karten, nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Warren Buffett: +2 Karten, +1 AP' });
       break;
     }
     case 'Jeff Bezos': {
@@ -79,19 +79,19 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     }
     case 'Larry Page': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Larry Page: +1 Karte, Refund-Pool +1' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Larry Page: +1 Karte, +1 AP' });
       break;
     }
     case 'Sergey Brin': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Sergey Brin: +1 Karte, Refund-Pool +1' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Sergey Brin: +1 Karte, +1 AP' });
       break;
     }
     case 'Tim Cook': {
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 2 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Tim Cook: nächste Initiative -2 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 2 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Tim Cook: +2 AP' });
       break;
     }
 
@@ -176,8 +176,8 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     }
     case 'Shinzo Abe': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Shinzo Abe: +1 Karte, nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Shinzo Abe: +1 Karte, +1 AP' });
       break;
     }
     case 'Narendra Modi': {
@@ -190,8 +190,8 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     // --- Nächste 10 Karten gemäß Guidelines §9 ---
     case 'Sam Altman': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Sam Altman: +1 Karte, nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Sam Altman: +1 Karte, +1 AP' });
       break;
     }
     case 'Greta Thunberg': {
@@ -201,8 +201,8 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     }
     case 'Jennifer Doudna': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'REFUND_NEXT_INITIATIVE', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Jennifer Doudna: +1 Karte, Refund-Pool +1' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Jennifer Doudna: +1 Karte, +1 AP' });
       break;
     }
     case 'Malala Yousafzai': {
@@ -211,8 +211,8 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
       break;
     }
     case 'Noam Chomsky': {
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Noam Chomsky: nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Noam Chomsky: +1 AP' });
       break;
     }
     case 'Ai Weiwei': {
@@ -228,8 +228,8 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     }
     case 'Anthony Fauci': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 1 });
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 });
-      state._effectQueue.push({ type: 'LOG', msg: 'Anthony Fauci: +1 Karte, nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 });
+      state._effectQueue.push({ type: 'LOG', msg: 'Anthony Fauci: +1 Karte, +1 AP' });
       break;
     }
     case 'Gautam Adani': {
@@ -247,8 +247,8 @@ export function triggerCardEffects(state: GameState, player: Player, card: Card)
     // --- Sofort-Initiativen (Beispiele, wenn du sie direkt aktivierst) ---
     case 'Digitaler Wahlkampf': {
       state._effectQueue.push({ type: 'DRAW_CARDS', player, amount: 2 });
-      state._effectQueue.push({ type: 'SET_DISCOUNT', player, amount: 1 }); // nächste Initiative -1 AP
-      state._effectQueue.push({ type: 'LOG', msg: 'Digitaler Wahlkampf: +2 Karten, nächste Initiative -1 AP' });
+      state._effectQueue.push({ type: 'ADD_AP', player, amount: 1 }); // simplified: immediate +1 AP
+      state._effectQueue.push({ type: 'LOG', msg: 'Digitaler Wahlkampf: +2 Karten, +1 AP' });
       break;
     }
     case 'Verzögerungsverfahren':

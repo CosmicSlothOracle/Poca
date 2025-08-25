@@ -55,8 +55,7 @@ export function getNetApCost(
   lane?: 'innen' | 'aussen' | 'sofort'
 ): { cost: number; refund: number; net: number; reasons: string[] } {
   // The net cost is always equal to the fixed cost. Refund-style abilities
-  // should enqueue ADD_AP events separately; therefore refund is **always 0**
-  // here.
+  // should enqueue ADD_AP events separately; therefore refund is **always 0** here.
 
   const cost = BASE_AP_COST;
   const refund = 0;

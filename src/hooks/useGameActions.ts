@@ -3,7 +3,7 @@ import { GameState, Card, Player, BuilderEntry, PoliticianCard } from '../types/
 import { createDefaultEffectFlags } from '../types/game';
 import { buildDeckFromEntries, sumGovernmentInfluenceWithAuras } from '../utils/gameUtils';
 import { PRESET_DECKS } from '../data/gameData';
-import { getCardActionPointCost, applyApRefundsAfterPlay, getNetApCost, canPlayCard, isInitiativeCard, isGovernmentCard } from '../utils/ap';
+import { getCardActionPointCost, getNetApCost, canPlayCard, isInitiativeCard, isGovernmentCard } from '../utils/ap';
 import { triggerCardEffects } from '../effects/cards';
 import { ensureTestBaselineAP } from '../utils/testCompat';
 import { resolveQueue } from '../utils/queue';
@@ -360,42 +360,31 @@ export function useGameActions(
 
       const selectedCard = hand[handIndex];
       if (!canPlayCard(prev, player, selectedCard)) {
-        log('🚫 Kann Karte nicht spielen (Aktionslimit & nicht 0-AP).');
+        log('🚫 Kann Karte nicht spielen (nicht genügend Aktionspunkte).');
         return prev;
       }
 
       const { cost, refund, net } = getNetApCost(prev, player, selectedCard);
       const prevAp = prev.actionPoints[player];
-      const prevAct = prev.actionsUsed[player] ?? 0;
+      // actionsUsed is ignored in simplified AP system
+
 
       const newState = { ...prev };
 
-      // AP abbuchen & refund gutschreiben
-      newState.actionPoints[player] = Math.max(0, newState.actionPoints[player] - cost);
-      newState.actionPoints[player] = Math.min(4, newState.actionPoints[player] + refund);
-
-      // Action-Zähler: nur wenn net > 0
-      if (net > 0) {
-        newState.actionsUsed[player] += 1;
-        log(`💳 Kosten verbucht: AP ${prevAp}→${newState.actionPoints[player]} | Aktionen ${prevAct}→${newState.actionsUsed[player]}`);
-      } else {
-        log(`🆓 Netto-0-Zug: −${cost} AP (+${refund} Refund) → keine Aktion verbraucht.`);
-      }
+      // AP abbuchen (refund is always 0 in simplified system)
+      newState.actionPoints[player] = Math.max(0, newState.actionPoints[player] - cost + refund);
+      // Log the AP change only (no action counter)
+      log(`💳 Kosten verbucht: AP ${prevAp}→${newState.actionPoints[player]}`);
 
       // Flags KONSUMIEREN (einheitlich, NUR HIER!)
       ensureFlags(newState, player);
       const ef = newState.effectFlags[player];
-
+      // In simplified AP system there is no refund/discount pool to consume. We keep
+      // govRefundAvailable flag logic unchanged, but skip consuming initiativeRefund
+      // and initiativeDiscount.
       // Regierung: Refund einmalig pro Zug
       if (selectedCard.kind === 'pol' && ef.govRefundAvailable) {
         ef.govRefundAvailable = false;
-      }
-
-      // Initiative: pro Karte je 1 Refund & 1 Discount abbauen, falls vorhanden
-      const isInstant = (selectedCard.kind === 'spec' && /Sofort-?Initiative/i.test((selectedCard as any).type ?? ''));
-      if (isInstant) {
-        if (ef.initiativeRefund > 0) ef.initiativeRefund -= 1;
-        if (ef.initiativeDiscount > 0) ef.initiativeDiscount -= 1;
       }
 
       // Remove card from hand
@@ -553,11 +542,8 @@ export function useGameActions(
               // Karte zurück in die Hand
               newState.hands[player] = [...newState.hands[player], playedCard];
               // AP zurückgeben
-              newState.actionPoints[player] = Math.min(4, newState.actionPoints[player] + net);
-              // Aktion rückgängig machen
-              if (net > 0) {
-                newState.actionsUsed[player] = Math.max(0, newState.actionsUsed[player] - 1);
-              }
+              newState.actionPoints[player] = newState.actionPoints[player] + net;
+              // No action counter in simplified system
               return newState;
             }
 
@@ -595,17 +581,17 @@ export function useGameActions(
           const markZuckerberg = newState.board[player].innen.find(card =>
             card.kind === 'spec' && (card as any).name === 'Mark Zuckerberg'
           );
-          if (markZuckerberg && !newState.effectFlags[player]?.markZuckerbergUsed) {
-            newState.actionPoints[player] = Math.min(4, newState.actionPoints[player] + 1);
-            newState.effectFlags[player] = { ...newState.effectFlags[player], markZuckerbergUsed: true };
-            log(`🔥 MARK ZUCKERBERG EFFEKT: +1 AP zurück nach Initiative (${newState.actionPoints[player] - 1} → ${newState.actionPoints[player]})`);
-          }
+            if (markZuckerberg && !newState.effectFlags[player]?.markZuckerbergUsed) {
+              newState.actionPoints[player] = newState.actionPoints[player] + 1;
+              newState.effectFlags[player] = { ...newState.effectFlags[player], markZuckerbergUsed: true };
+              log(`🔥 MARK ZUCKERBERG EFFEKT: +1 AP zurück nach Initiative (${newState.actionPoints[player] - 1} → ${newState.actionPoints[player]})`);
+            }
 
           // Sam Altman: "Bei einer KI-bezogenen Initiative: ziehe 1 Karte + 1 Aktionspunkt zurück"
           const samAltman = newState.board[player].innen.find(card =>
             card.kind === 'spec' && (card as any).name === 'Sam Altman'
           );
-          if (samAltman && (playedCard as any).tag === 'Intelligenz') {
+            if (samAltman && (playedCard as any).tag === 'Intelligenz') {
             // Ziehe 1 Karte
             if (newState.decks[player].length > 0) {
               const drawnCard = newState.decks[player].shift();
@@ -614,10 +600,10 @@ export function useGameActions(
                 log(`🔥 SAM ALTMAN EFFEKT: +1 Karte gezogen (${drawnCard.name}) - KI-Initiative`);
               }
             }
-            // +1 AP zurück
-            newState.actionPoints[player] = Math.min(4, newState.actionPoints[player] + 1);
-            log(`🔥 SAM ALTMAN EFFEKT: +1 AP zurück (${newState.actionPoints[player] - 1} → ${newState.actionPoints[player]}) - KI-Initiative`);
-          }
+              // +1 AP zurück
+              newState.actionPoints[player] = newState.actionPoints[player] + 1;
+              log(`🔥 SAM ALTMAN EFFEKT: +1 AP zurück (${newState.actionPoints[player] - 1} → ${newState.actionPoints[player]}) - KI-Initiative`);
+            }
 
 
           return newState;
@@ -684,7 +670,7 @@ export function useGameActions(
                 c.kind === 'spec' && (c as any).tag === 'Plattform'
               );
               if (hasPlatform) {
-                newState.actionPoints[player] = Math.min(4, newState.actionPoints[player] + 1);
+                newState.actionPoints[player] = newState.actionPoints[player] + 1;
                 log(`🔥 JEFF BEZOS: +1 AP durch Plattform-Synergie! (${newState.actionPoints[player] - 1} → ${newState.actionPoints[player]})`);
               }
 
@@ -720,7 +706,7 @@ export function useGameActions(
               });
 
               if (hasAuthoritarianCard) {
-                newState.actionPoints[player] = Math.min(4, newState.actionPoints[player] + 1);
+                newState.actionPoints[player] = newState.actionPoints[player] + 1;
                 log(`🔥 GEORGE SOROS EFFEKT: +1 AP durch autoritäre Regierung des Gegners!`);
                 log(`📊 SOROS: Aktionspunkte ${newState.actionPoints[player] - 1} → ${newState.actionPoints[player]}`);
               } else {
@@ -739,8 +725,7 @@ export function useGameActions(
             log(`❌ ERROR: Lane full - Öffentlichkeit ist voll (5/5)`);
           }
 
-          // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-          applyApRefundsAfterPlay(newState, player, selectedCard);
+          // In simplified AP system no AP refunds are applied here.
           return newState;
         }
 
@@ -763,8 +748,7 @@ export function useGameActions(
           newState._queue = [];
         }
 
-        // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-        applyApRefundsAfterPlay(newState, player, selectedCard);
+        // In simplified AP system no AP refunds are applied here.
         return newState;
       }
 
@@ -776,38 +760,7 @@ export function useGameActions(
           newState._queue = [];
         }
 
-      // 🔥 AP-REFUNDS nach dem Kartenspielen anwenden
-      applyApRefundsAfterPlay(newState, player, selectedCard);
-
-            // 🔧 TURN MANAGEMENT: Nur wechseln, wenn 2 Aktionen verbraucht UND keine 0-AP-Plays mehr möglich
-      if (newState.actionsUsed[player] >= 2) {
-        const stillHasFree = hasPlayableZeroCost(newState, player);
-        if (stillHasFree) {
-          log('⏸️ Aktionenlimit 2/2 erreicht, aber 0-AP-Züge verfügbar → Du kannst weiterspielen oder „Zug beenden".');
-        } else {
-          const shouldEndRound = checkRoundEnd(newState);
-          if (shouldEndRound) {
-            log(`🏁 Runde ${newState.round} wird beendet (nach 2 Aktionen von Spieler ${player}).`);
-            return resolveRound(newState, log);
-          }
-          const newCurrent: Player = player === 1 ? 2 : 1;
-          if (newState.passed[newCurrent]) {
-            log(`🏁 Runde ${newState.round} wird beendet (Spieler ${newCurrent} hatte bereits gepasst).`);
-            return resolveRound(newState, log);
-          }
-          newState.current = newCurrent;
-          newState.actionPoints = { ...newState.actionPoints, [newCurrent]: 2 };
-          newState.actionsUsed = { ...newState.actionsUsed, [newCurrent]: 0 };
-
-          // Apply new start-of-turn hooks
-          applyStartOfTurnFlags(newState, newCurrent, log);
-
-        // 🔥 CLUSTER 3: Auren-Flags beim Zugstart neu berechnen
-        recomputeAuraFlags(newState);
-
-          log(`🔄 Auto-Turnwechsel: Spieler ${newCurrent} ist am Zug (2 AP verfügbar)`);
-        }
-      }
+      // In simplified AP system there is no automatic AP refund or auto-turn switching.
 
 
 

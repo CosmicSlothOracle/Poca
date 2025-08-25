@@ -1,6 +1,6 @@
 import { GameState, Player, EffectEvent, PoliticianCard, Card } from '../types/game';
 import { getStrongestGovernment } from './targets';
-import { AP_CAP, MAX_DISCOUNT, MAX_REFUND } from '../config/gameConstants';
+import { AP_CAP } from '../config/gameConstants';
 import {
   logAP, logDiscount, logRefund, logDraw, logDiscardRandom,
   logDeactivateRandom, logBuffStrongest, logShield, logDeactivateCard,
@@ -53,7 +53,8 @@ export function resolveQueue(state: GameState, events: EffectEvent[]) {
 
       case 'ADD_AP': {
         const cur = state.actionPoints[ev.player];
-        const next = Math.max(0, Math.min(AP_CAP, cur + ev.amount));
+        // In the simplified AP system there is no AP cap. Clamp only at 0.
+        const next = Math.max(0, cur + ev.amount);
         state.actionPoints[ev.player] = next;
         logPush(state, logAP(ev.player, cur, next));
         break;
@@ -98,19 +99,12 @@ export function resolveQueue(state: GameState, events: EffectEvent[]) {
         break;
       }
 
-      case 'SET_DISCOUNT': {
-        const prev = state.effectFlags[ev.player].initiativeDiscount || 0;
-        const next = Math.max(0, Math.min(MAX_DISCOUNT, prev + ev.amount));
-        state.effectFlags[ev.player].initiativeDiscount = next;
-        logPush(state, logDiscount(ev.player, prev, next));
-        break;
-      }
-
+      // SET_DISCOUNT and REFUND_NEXT_INITIATIVE events are deprecated in the
+      // simplified AP system. They are treated as no-ops for backward
+      // compatibility.
+      case 'SET_DISCOUNT':
       case 'REFUND_NEXT_INITIATIVE': {
-        const prev = state.effectFlags[ev.player].initiativeRefund || 0;
-        const next = Math.max(0, Math.min(MAX_REFUND, prev + ev.amount));
-        state.effectFlags[ev.player].initiativeRefund = next;
-        logPush(state, logRefund(ev.player, prev, next));
+        // intentionally left blank
         break;
       }
 
