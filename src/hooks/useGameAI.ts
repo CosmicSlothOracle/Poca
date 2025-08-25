@@ -28,13 +28,22 @@ export function useGameAI(
         2: enabled
       }
     }));
+
+    // Only set preset when AI is enabled
+    if (enabled) {
+      setAiPreset('AUTORITAERER_REALIST');
+    }
   }, [setGameState]);
 
-  // Enhanced setAiPreset with logging - temporarily disabled for build
-  // const setAiPresetWithLog = useCallback((preset: keyof typeof PRESET_DECKS) => {
-  //   console.log('🔧 DEBUG: setAiPreset called with:', preset);
-  //   setAiPreset(preset);
-  // }, []);
+  // Enhanced setAiPreset with logging - only when AI is enabled
+  const setAiPresetWithLog = useCallback((preset: keyof typeof PRESET_DECKS) => {
+    if (aiEnabled) {
+      console.log('🔧 DEBUG: setAiPreset called with:', preset);
+      setAiPreset(preset);
+    } else {
+      console.log('🔧 DEBUG: setAiPreset ignored - AI not enabled');
+    }
+  }, [aiEnabled]);
 
   const runAITurn = useCallback(() => {
     console.log('🔧 DEBUG: runAITurn called - aiEnabled:', aiEnabled, 'current player:', gameState.current);
